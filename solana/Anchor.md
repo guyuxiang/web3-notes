@@ -1,0 +1,1445 @@
+# Anchor
+
+```
+avm list
+avm install latest
+avm use latest
+```
+
+### 初始化并构建一个 Anchor 程序
+
+```
+anchor init xxx
+```
+
+```
+anchor init --template multiple  xxx           // 使用模块化结构
+```
+
+程序文件的组织结构如下：
+
+- `/programs/my-project/src/lib.rs`- 包含模块声明的主入口点
+- `/programs/my-project/src/instructions/`指令处理程序
+- `/programs/my-project/src/state/`- 账户结构和状态
+- `/programs/my-project/src/constants.rs`程序常量
+- `/programs/my-project/src/error.rs`- 自定义错误定义
+
+
+
+anchor的模块分层
+
+| 架构层         | Anchor 角色               |
+| -------------- | ------------------------- |
+| Controller/API | `#[program]` 里的指令函数 |
+| DTO / Request  | `#[derive(Accounts)]`     |
+| Service        | instructions              |
+| Domain         | Account struct / State    |
+| Infra          | PDA、SPL、工具函数        |
+
+
+
+### 新的
+
+```
+anchor new <program-name>
+```
+
+在工作区`programs/`目录中创建一个新程序，并用样板代码进行初始化。
+
+默认情况下，使用**模块化结构**模板（推荐）。您可以使用标志指定不同的模板`--template`：
+
+```
+anchor new --template multiple <program-name>  # Default: Modular (recommended)anchor new --template single <program-name>    # Single file (for prototyping
+```
+
+
+
+
+
+### 编译
+
+```
+anchor build
+```
+
+
+
+### 部署
+
+```
+anchor deploy
+```
+
+默认情况下，生成的程序的密钥对的公钥路径： `/target/deploy/my_project-keypair.json`
+
+要使用文件中密钥对的公钥更新程序代码中的declare_id，运行：
+
+```
+anchor keys sync
+```
+
+
+
+### 升级
+
+Solana 程序默认可变
+
+再次运行 `anchor deploy`该程序被部署到相同的地址，但这次是*升级*，而不是部署
+
+程序 ID 没有改变，**程序被覆盖**
+
+Solidity 合约中使用 delegatecall 的主要目的是通过向新实现合约发出 delegatecall 来升级代理合约的功能。
+
+然而，由于 Solana 中的程序字节码可以升级，所以不需要对实现合约进行 delegatecall。
+
+
+
+
+
+### 测试
+
+默认情况下，`Anchor.toml`配置文件会指定`localnet`集群
+
+
+```
+anchor test
+```
+
+- Anchor 会自动做这几件事：
+
+- 启动一个 本地 solana-test-validator
+
+- 用这个本地链跑测试
+
+- 自动空投 SOL
+
+- 测试结束后关掉本地链
+
+  
+
+
+```
+anchor test --skip-local-validator
+```
+
+该标志跳过启动本地验证器，前提是自己已经手动启动本地 Solana 验证器，被准备好账户资金
+
+
+
+通过运行以下命令找到日志文件
+
+```pf
+ls .anchor/program-logs/
+```
+
+通过打开第三个 shell 并运行以下命令来查看**实时 Solana 日志**
+
+```shell
+solana logs
+```
+
+
+
+要将您的程序部署到 devnet，请将Anchor.toml中的`cluster`值更改为`Devnet`
+
+wallet 字段可以指定钱包
+
+
+
+在devnet上测试
+
+```
+anchor test --skip-local-validator --skip-build --skip-deploy --run tests/xxx.ts
+```
+
+
+
+### 迁移
+
+```
+anchor migrate
+```
+
+运行位于 `<workspace_name>` 的部署脚本`migrations/deploy.js`，并注入从工作区配置的提供程序`Anchor.toml`。例如：
+
+```
+// File: migrations/deploys.js
+ 
+const anchor = require("@anchor-lang/core");
+ 
+module.exports = async function (provider) {
+  anchor.setProvider(provider);
+ 
+  // Add your deploy script here.
+};
+```
+
+
+
+### 清空
+
+删除生成目录中的所有无关文件，仅保留程序密钥对。
+
+```
+anchor clean
+```
+
+
+
+### 重新部署
+
+```
+solana-keygen new -o target/deploy/xxx.json --force
+anchor keys sync
+anchor build
+anchor deploy
+```
+
+
+
+## [核实](https://www.anchor-lang.com/docs/references/cli#verify)
+
+```
+anchor verify <program-id>
+```
+
+验证链上字节码与本地编译产物是否匹配。
+
+
+
+### [目标文件夹](https://www.anchor-lang.com/docs/quickstart/local#target-folder)
+
+该`/target`目录包含构建输出。主要子文件夹包括：
+
+- `/deploy`包含程序所需的密钥对和程序二进制文件。
+- `/idl`：包含程序的 JSON IDL。
+- `/types`：包含 IDL 的 TypeScript 类型。
+
+### [Anchor.toml 文件](https://www.anchor-lang.com/docs/quickstart/local#anchortoml-file)
+
+该`Anchor.toml`文件用于配置项目的工作区设置。
+
+### [.anchor 文件夹](https://www.anchor-lang.com/docs/quickstart/local#anchor-folder)
+
+包含一个`program-logs`文件，其中包含上次运行测试文件的事务日志。
+
+### [应用程序文件夹](https://www.anchor-lang.com/docs/quickstart/local#app-folder)
+
+该`/app`文件夹是一个空文件夹，您可以选择性地将其用于存放前端代码。
+
+
+
+# Anchor 框架
+
+Anchor 框架使用 [Rust 宏](https://rust-book.cs.brown.edu/ch20-05-macros.html?highlight=macros#macros)来减少样板代码，并简化编写 Solana 程序所需的常见安全检查的实现。
+
+Anchor 程序中的主要宏包括：
+
+- [`declare_id`](https://www.anchor-lang.com/docs/basics/program-structure#declare_id-macro)：指定程序的链上地址
+- [`#[program\]`](https://www.anchor-lang.com/docs/basics/program-structure#program-attribute)：指定包含程序指令逻辑的模块
+- [`#[derive(Accounts)\]`](https://www.anchor-lang.com/docs/basics/program-structure#deriveaccounts-macro)：用于结构体，表示指令所需的帐户列表
+- [`#[account\]`](https://www.anchor-lang.com/docs/basics/program-structure#account-attribute)：应用于结构体，为程序创建自定义帐户类型
+
+
+
+**`declare_id!` 宏**
+
+指定了你程序的链上地址。Solana Playground 在你构建程序时会自动更新该地址。
+
+```
+declare_id!("11111111111111111111111111111111");
+```
+
+
+
+**`#[program]` 宏**
+
+表示指令处理模块，该模块中的每个公共函数都对应一条可调用的指令。
+
+
+
+**ctx: Context<T>**
+
+`Context` 是一个 Anchor 框架提供的泛型，用于封装所有与账户相关的信息。
+
+其中`T`是一个实现了 [`Accounts`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/lib.rs#L108) 相应 trait 的自定义结构体，并指定指令所需的账户
+
+- 提供了自动化账户校验，防止大量重复代码，Anchor 通过 `Context<T>` 自动做这些校验，减少了出错的机会。
+- 自动绑定了生命周期标注，确保账户在整个函数调用过程中是有效的。从而不需要显式地管理每个账户的生命周期
+
+```rust
+pub struct Context<'a, 'b, 'c, 'info, T: Bumps> {
+    /// Currently executing program id.
+    pub program_id: &'a Pubkey,
+    /// Deserialized accounts.
+    pub accounts: &'b mut T,
+    /// Remaining accounts given but not deserialized or validated.
+    /// Be very careful when using this directly.
+    pub remaining_accounts: &'c [AccountInfo<'info>],
+    /// Bump seeds found during constraint validation. This is provided as a
+    /// convenience so that handlers don't have to recalculate bump seeds or
+    /// pass them in as arguments.
+    /// Type is the bumps struct generated by #[derive(Accounts)]
+    pub bumps: T::Bumps,
+}
+```
+
+`Context`可以使用点号表示法在指令中访问这些字段：
+
+- **ctx.accounts 经过验证和反序列化后的账户集合**
+- **ctx.program_id 当前合约的地址**
+- **ctx.remaining_accounts 未在结构体中定义但随交易传入的账户**
+- **ctx.bumps 存储账户验证过程中推导出的所有 `bump`。**
+- **ctx.instruction_data 原始指令数据。**
+
+
+
+**举例：**
+
+**`Context<Initialize>`：**
+
+函数参数中的将本指令所需的特定账户传递给函数，比如自定义 `Initialize` struct 中所指定。
+
+这里的 `Initialize` 是一个自定义的结构体，它通常包含用户账户、程序账户以及其他需要传递给函数的账户信息。
+
+因此Context<Initialize>表示这个函数操作的账户上下文
+
+
+
+**`#[derive(Accounts)]`**：
+用于指定调用指令时必须提供的账户，它会自动生成一些必要的代码，简化了账户验证以及账户数据的序列化和反序列化。
+
+结构体中的每个字段代表一条指令所需的账户。字段名称可以任意指定，但建议使用能够表明账户用途的描述性名称。
+
+比如
+
+```rust
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(init, payer = signer, space = 8 + 8)]
+    pub new_account: Account<'info, NewAccount>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+```
+
+
+
+**`'info`**
+生命周期,这是 Anchor 为了处理 Solana 上账户和数据的生命周期管理而加上的标注。
+
+它确保了我们使用的所有账户在整个调用过程中都是有效的。
+
+
+
+**Anchor 账户类型**
+
+Anchor 提供了 `Signer`、`Account` 、`Program`等高级账户类型，它们自带了相应的权限校验和数据解析功能。
+
+**Signer:**
+
+自动检查 `account.is_signer` 是否为 **true**。如果不是签名者，交易直接报错。
+
+**Account:**
+
+检查该账户的 **Owner** 是否是当前程序。
+
+检查账户数据的 **Discriminator**（鉴别器）是否匹配结构体 `T`。
+
+自动将二进制数据**反序列化**为 Rust 结构体 `T`。
+
+**Program**:
+
+检查该账户是否为 **可执行（Executable）** 的程序账户。
+
+检查该程序的 **地址** 是否与指定的 `T`（如 `System`）匹配。
+
+
+
+
+
+**\#[account()]**
+
+[账户约束](https://www.anchor-lang.com/docs/references/account-constraints)：约束定义了账户必须满足的附加条件，才能被视为对指令有效。约束通过`#[account(..)]` 属性应用，该属性位于实现了相应 `Accounts`特性的结构体字段上方。
+
+
+
+**constraint：**指定限制条件，类似一个条件表达式可以给指令增加一些校验
+
+```rust
+    #[account(
+        constraint = my_account.mint == token_account.mint,
+        has_one = owner
+    )]
+```
+
+
+
+**`realloc`** :约束允许调整账户数据大小,会调用 System Program 以调整账户数据
+
+**`realloc::payer = user` (资金支付者)**
+
+当你的 `message` 长度变长，导致 `realloc` 计算出的新空间大于旧空间时，该账户就需要更多的 **Lamports**（租金）来维持“免租金（Rent-exempt）”状态。
+
+- **含义**：它指定了**谁来支付**这部分额外增加的租金。
+- **动作**：如果空间增加了，系统会自动从 `user` 的余额中扣除相应金额并存入 `message_account`。
+
+**`realloc::zero = true` (内存初始化)**
+
+在 Solana 中，分配新空间时，原本属于该账户的老数据会被保留，但新扩展出来的“空白区域”可能包含旧的垃圾数据。
+
+- **含义**：当账户空间扩大时，是否将新增加的那部分字节全部**归零（Zero-initialize）**。
+- **为什么要设为 `true`**：
+  1. **安全性**：防止读取到之前占用该物理内存地址的程序留下的敏感信息。
+  2. **序列化一致性**：Borsh 序列化库在处理 `String` 或 `Vec` 时，如果新空间不是干净的零，可能会导致反序列化失败或数据损坏。
+
+
+
+**`realloc` 的整体执行流**
+
+当你调用这个带有 `realloc` 的指令时，Solana 运行时会发生以下步骤：
+
+1. **计算差额**：系统对比当前账户大小和 `realloc` 指定的新大小。
+2. **资金划转**：如果变大，从 `realloc::payer` 扣钱；如果变小，将多余的钱退给 `realloc::payer`。
+3. **空间调整**：修改账户在账本上的 `data_len` 属性。
+4. **清理（如果 zero 为 true）**：将新出的字节空间全部填为 `0`。
+
+
+
+这种`::`语法其实是 **Anchor 框架自定义的 DSL（领域特定语言）**。它并不是标准的 Rust 路径语法，而是 Anchor 的 **属性宏解析器** 为了实现“命名空间化”而设计的一种表达方式。
+
+**逻辑上的“命名空间” (Namespacing)**
+
+在 Anchor 的 `#[account(...)]` 宏里，有非常多可选参数。如果全部打散，会显得非常混乱。
+
+Anchor 团队使用了 `::` 来表示**归属关系**。
+
+- **`realloc`**: 这是一个主开关，告诉 Anchor “我们要改变空间”。
+- **`realloc::payer`**: 属于 `realloc` 功能下的“支付者”子设置。
+- **`realloc::zero`**: 属于 `realloc` 功能下的“清零”子设置。
+
+
+
+**为什么不像 Rust 那样用点 `.`？**
+
+这种设计类似于你在文件夹里找文件：`realloc` 文件夹下的 `payer` 选项。
+
+在 Rust 中，点 `.` 通常用于**实例对象**访问属性或方法（运行时），而双冒号 `::` 用于**路径、模块或关联项**（编译时/类型级别）。
+
+因为这些约束是在**编译时**由宏处理的，属于元编程范畴，所以使用 `::` 更符合 Rust 开发者对“路径”和“静态关联”的审美习惯。
+
+
+
+**close约束**
+
+`close = user` 约束将该账户标记为待关闭，执行时关闭账户后会将其 lamports 转移到 `user` 账户
+
+```rust
+#[derive(Accounts)]
+pub struct Delete<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"message", user.key().as_ref()],
+        bump = message_account.bump,
+        close = user,
+    )]
+    pub message_account: Account<'info, MessageAccount>,
+}
+```
+
+
+
+**`#[account]`**: 
+
+它定义了存放在账户中的实际数据结构。
+
+- [指定程序所有者](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/attribute/account/src/lib.rs#L130-L143)：创建帐户时，帐户的程序所有者会自动设置为在 中指定的程序`declare_id`。
+- [设置Discriminator鉴别符](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/attribute/account/src/lib.rs#L111-L128)：在账户初始化期间，会将一个唯一的 8 字节鉴别符（特定于账户类型）添加到账户数据的前 8 个字节。这有助于区分账户类型，并用于账户验证。
+- [数据序列化和反序列化](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/attribute/account/src/lib.rs#L224-L270)：账户数据根据账户类型自动进行序列化和反序列化（基于 Borsh）。
+
+
+
+**Account Discriminator（账户鉴别器）**
+
+在底层的 Solana 开发中，所有账户本质上都是一个**二进制数组**（Blob of bytes）
+
+为了识别账户数据的具体类型，在给结构体加上 `#[account]` 宏时，Anchor 会在编译时自动计算一个 **8 字节**的哈希值。
+
+鉴别器用于以下两种情况：
+
+- 初始化：创建帐户时，鉴别器设置为帐户数据的前 8 个字节。
+- 反序列化：当反序列化帐户数据时，会检查帐户数据的前 8 个字节是否与预期帐户类型的鉴别器匹配。
+
+
+
+**生成规则：**
+
+1. 取字符串 `account:<ClassName>`（例如 `account:NewAccount`）。
+2. 对该字符串进行 **Sha256** 哈希计算。
+3. 取哈希值的前 **8 个字节**。
+
+Anchor 使用 **SHA256** 哈希算法，对特定格式的字符串进行处理。
+$$
+Discriminator = \text{SHA256}(\text{"account:TypeName"})[0..8]
+$$
+
+
+- **前缀**：必须包含固定字符串 `account:`。
+- **类名**：结构体的名称（保持 Rust 中的原始命名，通常是 **PascalCase** 驼峰命名法）。
+- **截取**：取哈希结果的前 8 个字节（64 位）。
+
+
+
+**如何工作？**
+
+尝试访问 x_account: Account<'info, aAccount>` 时，Anchor 会自动执行以下检查：
+
+1. **读取账户数据**：查看该账户在链上存储的前 8 个字节。
+2. **对比**：将这 8 字节与代码中 `aAccount` 预计算出的鉴别器进行对比。
+3. **验证**：
+   - 如果**匹配**，程序继续运行，将剩下的字节反序列化为你的数据类型。
+   - 如果**不匹配**，程序会立刻报错（抛出 `ConstraintRaw` 错误），拒绝处理这笔交易。
+
+
+
+**`pub system_program: Program<'info, System>`**
+
+只有 **System Program（系统程序）** 拥有创建账户、分配空间和分配 Owner 的终极权限。
+
+当程序需要创建一个新账户，既然要调用系统程序，你就必须把系统程序的地址传进来。
+
+Solana 指令有一个核心原则：**程序不能访问它没有显式收到的账户或程序。**
+
+因此Solana 要求你必须把所有要用到的“工具”（在这个例子中是 `System Program`）都摆在桌面上（即放在 `Accounts` 结构体里）。
+
+
+
+**Account<'info, NewAccount>**
+
+`'info`：生命周期标识符
+
+**它的含义**：它告诉编译器，这个结构体里的所有账户引用，其生命周期都与交易请求（Context）的生命周期一致。
+
+**为什么要用它**：Solana 为了性能，不会在内存里到处拷贝账户数据，而是直接引用（Reference）内存中的字节。`'info` 保证了：只要你的指令还在运行，这些账户数据就一定有效，不会被提前回收。
+
+**`<NewAccount>`：泛型数据类型**
+
+在 `Account<'info, NewAccount>` 中，`NewAccount` 是一个**泛型参数**。
+
+- **它的含义**：它告诉 Anchor，“这个账户不仅仅是一个普通的 Solana 账户，它的内部数据符合我定义的 `NewAccount` 结构体格式”。
+- **作用**：
+  - **自动反序列化**：Anchor 会自动把账户里的二进制字节转换成你可以直接使用的 Rust 对象（比如读取其中的 `data` 字段）。
+  - **类型检查**：它触发了我们之前讨论过的 **Account Discriminator（鉴别器）** 检查，确保传入的账户确实是 `NewAccount` 类型。
+
+
+
+
+
+**Result<()>**
+
+Solana 中的所有函数的返回类型都是 `Result<()>` 。[Result](https://doc.rust-lang.org/std/result/) 是一种类型，可以是 `Ok(())` 或错误。
+
+因此，Solana 程序应该始终返回某些内容 — 要么是 `Ok(())`，要么是错误。
+
+**`()`（单位类型）**
+
+`()` 是 Rust 中的 **单位类型**，也可以理解为 **空类型**，类似于其他语言中的 `void`。它表示没有有意义的值。
+
+当你看到 `Ok(())`，它表示：
+
+- **`Result` 的成功状态**
+- 成功返回了 **单位类型** `()`，意味着没有任何实际的值需要返回
+
+用于表示成功但不需要返回值的函数的场景
+
+**`()`** 是 Rust 的 **unit类型**，它在这里有两个重要的作用：
+
+- **表示没有有意义的返回值**，类似于其他语言中的 `void`。
+- **作为默认的错误类型**：如果你没有指定错误类型，Rust 会默认使用 `()` 作为 `Err` 的类型。
+
+Result<()> 实际上是 Result<(), ()> 默认错误类型是 ()
+
+这里，Ok 是一个包含单元类型的枚举。
+
+在 Rust 中，不返回任何东西的函数隐式返回单元类型。没有分号的 `Ok(())` 在语法上等同于 `return Ok(());`
+
+
+
+
+
+### Solana Anchor 程序 IDL
+
+IDL（接口定义语言）是一个 JSON 文件，描述了如何与 Solana 程序进行交互。它是由 Anchor 框架自动生成的。
+
+- 标准化：为描述程序说明和账户提供一致的格式。
+- 客户端生成：用于生成与程序交互的客户端代码
+
+当 Anchor 构建 Solana 程序时，它会创建一个 IDL（接口定义语言）。
+
+这个 IDL 存储在`target/idl/<program-name>.json`中。
+
+```json
+{
+  "address": "Cu7xqsfo9YLPzdhm3gdGVXsjuXZg15h9yaA41rGMzA2h",   // 程序（Program）的 Program ID（部署后的地址）
+  "metadata": {
+    "name": "hello_solana", // 程序名（通常来自 Anchor 项目名/#[program] mod ...）
+    "version": "0.1.0", // 程序的版本（通常来自 Cargo.toml 或 Anchor 配置）
+    "spec": "0.1.0", // IDL 规范版本（工具读这个来解析 JSON）
+    "description": "Created with Anchor" // 描述信息
+  },
+  "instructions": [
+    {
+      "name": "initialize",  // 指令名
+      "discriminator": [    
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+        // Anchor 指令识别码（8 字节）当发交易调用某个 instruction 时，instruction data 的开头是这 8 个字节
+		// Anchor 的规则是：discriminator = sha256("global:<instruction_name>")[0..8]
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": false, // 在 Anchor 合约中，mut 用来标记一个账户是否可以在合约中被修改。可以在合约中修改账户的内容（如修改余额，更新数据等），默认表示账户是只读的，不会修改。
+          "signer": true
+        },
+        {
+          "name": "another_signer",
+          "isMut": false,
+          "signer": true
+        }
+      ], // 调用这个指令需要哪些账户，是否需要签名
+      "args": [
+        {
+          "name": "a",
+          "type": "u64"
+        },
+        {
+          "name": "b",
+          "type": "u64"
+        }
+      ] //指令参数（会被序列化进 instruction data）
+    }
+  ]
+}
+```
+
+“instructions”列表是程序的公共函数，大致相当于以太坊合约上的外部函数和公共函数。**在 Solana 中，IDL 文件的作用类似于 Solidity 中的 ABI 文件，指定如何与程序/合约进行交互。**
+
+
+
+其中命名会从Rust蛇形命名自动转换为JS/TS的驼峰命名
+
+### [IDL中的PDA种子](https://www.anchor-lang.com/docs/basics/pda#pda-seeds-in-the-idl)
+
+约束中定义的程序派生地址 (PDA) 种子`seeds`包含在程序的 IDL 文件中。这使得 Anchor 客户端在构建指令时能够使用这些种子自动解析帐户地址。
+
+```
+"accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "pda_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [104, 101, 108, 108, 111, 95, 119, 111, 114, 108, 100]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        }
+      ],
+```
+
+
+
+
+
+### **交易的回滚机制：**
+
+**以太坊和 Solana 在停止具有无效参数的交易方面的显着区别在于，以太坊触发回滚，而 Solana 返回错误。**
+
+在 Solana 合约中，所有的交易都是 **原子性的**。这意味着，如果交易执行过程中发生错误，所有的状态变化都会 **回滚**，这包括账户余额的变化、PDA 状态的变化等。
+
+#### 关键点：
+
+- **交易回滚**：当交易执行失败时，Solana 会撤销所有在该交易中进行的状态变更（包括账户数据的更新等）。
+- **日志信息**：尽管交易的状态会回滚，但 **日志信息会被记录下来**。这意味着你在调用 `msg!` 输出的日志信息 **不会回滚**，它们仍然会保存在交易日志中。
+
+
+
+### 错误
+
+Anchor 程序中的类型 [`Result`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/lib.rs#L77) 是标准 Rust 类型 `Result<T, E>`的别名。在本例中，` T` 表示成功返回的类型，而 `E` 是 Anchor 的自定义`Error`类型。
+
+```rust
+pub type Result<T> = std::result::Result<T, error::Error>;
+```
+
+```rust
+pub fn custom_instruction(ctx: Context<CustomInstruction>) -> Result<()> {
+    // --snip--
+    Ok(())
+    // 处理错误情况 
+    Err(Error)
+}
+```
+
+
+
+当 Anchor 程序中发生错误时，它会返回一个自定义 [`Error`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/error.rs#L277-L281) 类型，该类型定义如下：
+
+```
+#[derive(Debug, PartialEq, Eq)]
+pub enum Error {
+    AnchorError(Box<AnchorError>),
+    ProgramError(Box<ProgramErrorWithOrigin>),
+}
+```
+
+Anchor 程序中的类型`Error`可以是以下两种变体之一：
+
+1. [`ProgramErrorWithOrigin`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/error.rs#L389-L394)：封装了标准 Solana [`ProgramError`](https://github.com/anza-xyz/agave/blob/v1.18.26/sdk/program/src/program_error.rs#L12-L66) 类型的自定义类型。这些错误来自该`solana_program`crate。
+
+```
+#[derive(Debug)]
+pub struct ProgramErrorWithOrigin {
+    pub program_error: ProgramError,
+    pub error_origin: Option<ErrorOrigin>,
+    pub compared_values: Option<ComparedValues>,
+}
+```
+
+1. [`AnchorError`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/error.rs#L490-L497)：由 Anchor 框架定义的错误。
+
+```
+#[derive(Debug)]
+pub struct AnchorError {
+    pub error_name: String,
+    pub error_code_number: u32,
+    pub error_msg: String,
+    pub error_origin: Option<ErrorOrigin>,
+    pub compared_values: Option<ComparedValues>,
+}
+```
+
+可以把一个`AnchorError`变量看作是两类：
+
+1. 内部锚点错误 - 这些是锚点框架内置的错误。它们在 [`ErrorCode`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/error.rs#L10-L275) 枚举中定义。
+2. 自定义程序错误 - 这些是开发人员定义的程序特定错误，用于处理自定义错误情况。
+
+
+
+### 自定义错误
+
+Anchor 提供了一种便捷的方式来通过 `error_code`属性定义自定义错误。
+
+```rust
+#[error_code]
+pub enum MyError {
+    #[msg("The balance is insufficient.")]
+    InsufficientBalance,
+    #[msg("The account is not initialized.")]
+    UninitializedAccount,
+}
+```
+
+**`#[error_code]`** 宏用于定义自定义错误。
+
+当您使用属性定义枚举时`error_code`，Anchor 会自动执行以下操作：
+
+- 分配一个从 6000 开始的错误代码
+- 生成错误处理所需的样板代码
+- 错误的消息可以使用 **`#[msg]`** 注解来指定。`msg`允许通过属性使用自定义错误消息。
+
+
+
+**在函数中使用自定义错误**
+
+代码中要抛出错误，请使用 [`err!`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/lib.rs#L735-L743) 宏
+
+该`err!`宏提供了一种便捷的方式来从程序中返回自定义错误。其底层使用`error!`宏来构造错误 `AnchorError`
+
+```rust
+ return err!(MyError::DataTooLarge);
+```
+
+如果 Rust 中的最终语句没有分号，则该行的代码将作为返回值。
+
+
+
+#### `require!`
+
+` require! `宏，概念上与 Solidity 中的 require 相同
+
+```
+require!(data.data < 100, MyError::DataTooLarge);
+```
+
+[Anchor 提供了多个“require”宏，以满足不同的验证需求。您可以在这里](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/lib.rs)找到这些宏的实现 。
+
+| 宏                  | 描述                                                     |
+| ------------------- | -------------------------------------------------------- |
+| `require!`          | 确保条件为真，否则返回给定的错误。                       |
+| `require_eq!`       | 确保两个非公钥值相等。                                   |
+| `require_neq!`      | 确保两个非公钥值不相等。                                 |
+| `require_keys_eq!`  | 确保两个公钥的值相等。                                   |
+| `require_keys_neq!` | 确保两个公钥不相等。                                     |
+| `require_gt!`       | 确保第一个非公钥值大于第二个非公钥值。                   |
+| `require_gte!`      | 确保第一个 NON-PUBKEY 值大于或等于第二个 NON-PUBKEY 值。 |
+
+
+
+### 事件
+
+在 Solana 中，没有像以太坊那样专门的 `Event` 存储结构，**Anchor 的 `emit!()` 宏本质上就是通过 Program Logs 实现的**。
+
+- 当你执行 `emit!(MyEvent { ... })` 时，Anchor 会将被序列化后的数据打印到日志中。
+- 前端（如 Web3.js 或 Anchor TS 客户端）通过订阅该程序的日志流，解析特定格式的字符串，从而捕捉到“事件”。
+- 也可以通过订阅 RPC 节点的 `onLogs` Websocket，实时捕获合约动作（比如“转账成功”）。
+
+
+
+Program Logs  日志会作为交易元数据（Metadata）的一部分，被写入到 **Ledger（账本文件）**，合约代码无法读取，**会被修剪**（由验证节点决定保留多久），费用包含在交易的手续费（Fee）中
+
+查看日志
+
+1. **本地开发**： 如果你在运行 `solana-test-validator`，你可以通过另一个终端运行：
+
+   ```
+   solana logs -u localhost
+   ```
+
+2. **浏览器 (Explorer)**： 在 [Solana Explorer](https://explorer.solana.com/) 或 [Solscan](https://solscan.io/) 上查看任何一笔交易，点击 **"Program Logs"** 选项卡，就能看到完整的调用栈和自定义日志。
+
+3. **RPC 索引**：由于 Ledger 文件非常巨大且难以查询，专门的 **RPC 节点**（如 Alchemy, Helius, QuickNode）会提取这些日志，并将其存入自己的高性能数据库（如 PostgreSQL 或 BigTable）。
+
+   对于更强大的事件解决方案，请考虑使用 Alchemy、QuickNode、[Triton](https://docs.triton.one/project-yellowstone/dragons-mouth-grpc-subscriptions) 或[Helius](https://docs.helius.dev/data-streaming/geyser-yellowstone)的 geyser gRPC 服务。
+
+```rust
+// 程序日志
+#[event]
+pub struct CustomEvent {
+    pub message: String,
+}
+```
+
+**`#[event]` 宏**
+
+- 序列化支持：它会自动为 CustomEvent 结构体实现 BorshSerialize 接口。因为日志本质上是一串字符串，Anchor 需要先将你的结构体转换成二进制字节流，然后再进行 Base64 编码。
+- 自动打标签：当你在程序中使用 emit!(CustomEvent { ... }) 时，Anchor 会在打印的日志前加上一个特定的哈希标签（Discriminator）。格式通常为：Program log: [Base64编码后的数据] 这个标签让前端（如 Anchor TS Client）能够从成千上万条普通日志（如 "Program success"）中，精准地识别出：“嘿！这是一条 CustomEvent 类型的事件数据！”
+
+
+
+Anchor 提供了两个宏，用于在程序中发出事件：
+
+1. `emit!()`- 直接将结构化事件发送到程序日志中。
+
+- 使用 [`sol_log_data()`](https://github.com/anza-xyz/agave/blob/c2b350023ba849d1b33142592264aaa51fcb7f1e/sdk/program/src/log.rs#L115-L124) 系统调用将数据写入程序日志
+- 将事件数据编码为以 Program Data: 为前缀的 base64 字符串
+
+```rust
+emit!(CustomEvent { message: input });
+```
+
+
+
+2. `emit_cpi!()`- 宏通过跨程序调用 (CPI) 向程序本身发出事件。事件数据经过编码后包含在 CPI 的指令数据中（而不是程序日志中）。允许你的事件被**链上**的其他程序“实时听到”
+
+要通过 CPI 发出事件，您需要在Cargo.toml中启用该功能：
+
+```
+[dependencies]
+anchor-lang = { version = "0.32.1", features = ["event-cpi"] }
+```
+
+用法：
+
+必须将该 [`event_cpi`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/attribute/event/src/lib.rs#L228-L237) 添加到`#[derive(Accounts)]`
+
+因为通过 **CPI** 调用发送给特定的 Program，此属性 会自动包含 自 CPI 所需的[其他帐户。](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/syn/src/parser/accounts/event_cpi.rs#L28-L70)
+
+```
+#[event_cpi]
+#[derive(Accounts)]
+pub struct RequiredAccounts {
+  // --snip--
+}
+```
+
+发送
+
+```
+ emit_cpi!(CustomEvent { message: input });
+```
+
+很多时候，`event_cpi` 的实现方式是**程序自己调用自己（Self-CPI）**。
+
+为了完成这个自调用，你必须把“当前程序（Self）”的地址也作为账户传进去。
+
+
+
+`emit!()`这种方式比较简单，但在某些情况下，程序日志可能会被数据提供者截断。Solana 的运行时（Runtime）为了防止恶意程序产生海量日志导致节点崩溃，设定了一个**硬性上限**：**10 KB 限制**：单次交易产生的总日志量通常被限制在 **10 KB** 左右。如果你的程序在一个循环里打印了大量数据，一旦超过这个阈值，后续的 `msg!()` 将直接被忽略，且交易依然可能显示成功（Success），但你会在日志末尾看到类似 `... (truncated)` 的提示。
+
+该`emit_cpi()`方法旨在替代程序日志，但这种方法确实会因跨程序调用而产生额外的计算成本。
+
+**场景一：链上组合性（On-chain Composability）**
+
+假设你写了一个 DeFi 协议。如果其他开发者的合约想在你发生“大额清算”时自动执行某些代码，他们无法通过 `#[event]` 监听到，因为合约读不了日志。但如果你的清算事件是 `#[event_cpi]`，他们的合约就可以通过 **CPI 拦截** 或查看交易内的数据来触发逻辑。
+
+
+
+**`msg!`**：
+
+非结构化的事件日志，任意文本适合临时调试
+
+
+
+### Anchor的 PDA 账户
+
+```rust
+#[derive(Accounts)]
+#[instruction(message: String)]
+pub struct Create<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(
+        init,
+        seeds = [b"message", user.key().as_ref()],
+        bump,
+        payer = user,
+        space = 8 + 32 + 4 + message.len() + 1
+    )]
+    pub message_account: Account<'info, MessageAccount>,
+    pub system_program: Program<'info, System>,
+}
+```
+
+- `#[instruction(message: String)]` 注解允许 `Create` 结构体访问来自 `create` 指令的 `message` 参数。
+- `init` 约束在指令执行期间创建该账户
+- `seeds` 和 `bump` 约束将账户地址派生为 Program Derived Address (PDA)
+- 在本例中**，bump 约束没有被赋值**，因此 Anchor 会自动使用 `find_program_address` 来派生 PDA 并查找 bump。
+- `payer = user` 指定新账户的支付者
+- `space` 分配账户数据字段所需的字节数
+- `space` 计算 `(8 + 32 + 4 + message.len() + 1)` 会为 `MessageAccount` 数据类型分配空间：
+  - Anchor 账户判别符（标识符）：8 字节
+  - 用户地址（`Pubkey`）：32 字节
+  - 用户消息（`String`）：4 字节用于长度 + 可变消息长度
+  - PDA bump seed（`u8`）：1 字节
+
+
+
+
+
+```
+ctx.bumps.message_account;
+```
+
+为了方便你后续使用，Anchor 会将这个数值存放在一个名为 `bumps` 的结构体中，并附加在 `Context` 指令上下文里
+
+
+
+seed中的
+
+```
+user.key().as_ref()
+```
+
+`.key()` 方法会提取出该账户对应的 **`Pubkey`（公钥）**
+
+它返回一个 `Pubkey` 类型的值（在底层是一个包含 32 个字节的结构体）
+
+`.as_ref()`它将某种类型转换为**字节切片引用（`&[u8]`）**
+
+因为要求传入的“种子”必须是**字节数组的集合**
+
+
+
+
+
+### 借用
+
+```
+let account_data = &mut ctx.accounts.message_account;
+```
+
+ `&`（只读借用）：只能读取，当你尝试修改 `content` 时，编译器会直接报错：
+
+> *“Cannot assign to data in a '&' reference”* (不能在只读引用中修改数据)
+
+ `&mut`“可变借用”（Mutable Reference）：可以**修改**一个变量的值
+
+
+
+**Rust 的“独占”规则**
+
+`&mut` 有一个非常重要的特性：**在同一时间内，一个变量只能有一个可变借用。**
+
+- **为什么？** 为了防止“数据竞争”（Data Race）。如果两个人同时拥有写的权力，或者一个人在读的时候另一个人在写，数据就会乱套。
+- **在 Anchor 中的体现**：当你把账户借出为 `&mut` 后，在它还回去之前，你不能再对同一个账户创建另一个引用。
+
+
+
+
+
+### CPI跨程序调用
+
+**一种使用了Anchor辅助函数的CPI调用方式（[`transfer`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/lang/src/system_program.rs#L298)）**
+
+```rust
+        let transfer_accounts = Transfer {
+            from: ctx.accounts.user.to_account_info(),
+            to: ctx.accounts.vault_account.to_account_info(),
+        };
+        let cpi_context = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            transfer_accounts,
+        );
+        transfer(cpi_context, 1_000_000)?;
+```
+
+`Transfer`指定了 System Program 转账指令所需的账户
+
+`CpiContext` 指定了：
+
+- 要调用的程序（System Program）
+- CPI 所需的账户（在 `Transfer` 结构体中定义
+- `CpiContext` 是 Anchor 框架定义的一个结构体。当你写 `CpiContext::new(...)` 时，你实际上是在调用该结构体的构造器，将分散的参数包装成一个符合 CPI 要求的“上下文包”。
+- 在 Rust 中，如果你想创建一个结构体的实例，通常会定义一个名为 `new` 的函数。
+- **语法格式**：`结构体名称::函数名(参数)`称为 **关联函数（Associated Function）** 调用
+
+`transfer` 函数随后会在 System Program 上调用转账指令，传入：
+
+- `cpi_context`（程序和账户）
+- `amount`（要转账的金额，1,000,000 lamports，即 0.001 SOL）
+
+CPI 的设置方式与客户端指令的构建方式一致，你需要为要调用的特定指令指定程序、账户和 instruction data。
+
+
+
+
+
+####  Rust 的特性（features）机制的CPI
+
+直接复用被调用合约的逻辑定义
+
+**在主调项目中引入被调用项目的代码，在 `Cargo.toml` 中配置添加特性 features = ["cpi"]：**
+
+```solidity
+[dependencies]
+puppet = { path = "../puppet", features = ["cpi"]}
+```
+
+当你将被调用合约（如 `puppet`）作为依赖引入，并开启 `cpi` 特性时，Anchor 的宏（`#[program]`）会发挥作用：
+
+- **代码复用**：它会将 `puppet` 合约中的指令结构体（Accounts）和指令函数名暴露出来。
+- **模块生成**：在 `puppet` 命名空间下自动生成一个 `cpi` 模块。
+- **自动转换**：这个生成的 `cpi` 模块包含了专门用于发起 CPI 的函数，其参数不再是 `Context`，而是 `CpiContext`。
+
+
+
+**构建上下文 (CpiContext)**
+
+- **Cpi Program**: 被调用合约的 `AccountInfo`。
+- **Cpi Accounts**: 使用被调用合约中定义的账户结构体（例如 `SetData`）。
+
+
+
+**发起调用**
+
+```solidity
+被调用程序::cpi::被调用指令(CpiContext类型ctx, data)
+```
+
+比如：
+
+```rust
+// 1. 准备程序账户
+let cpi_program = self.puppet_program.to_account_info();
+
+// 2. 实例化被调用合约的账户结构
+let cpi_accounts = SetData {
+    puppet: self.puppet.to_account_info()
+};
+
+// 3. 包装成 CpiContext
+let ctx = CpiContext::new(cpi_program, cpi_accounts)
+puppet::cpi::set_data(ctx, data)
+```
+
+
+
+#### Rust原生调用
+
+`invoke` 本示例展示了使用函数和 实现 CPI 的不同方法[`system_instruction::transfer`](https://github.com/anza-xyz/agave/blob/v1.18.26/sdk/program/src/system_instruction.rs#L881-L891)，这通常在原生 Rust 程序中看到。
+
+从本质上讲，前面的示例是对该实现的一种抽象。下面的示例在功能上与前面的示例等效。
+
+
+
+```rust
+use anchor_lang::solana_program::{program::invoke, system_instruction};
+```
+
+
+
+```rust
+pub fn sol_transfer(ctx: Context<SolTransfer>, amount: u64) -> Result<()> {
+    let from_pubkey = ctx.accounts.sender.to_account_info();
+    let to_pubkey = ctx.accounts.recipient.to_account_info();
+    let program_id = ctx.accounts.system_program.to_account_info();
+ 
+
+    let instruction =
+        &system_instruction::transfer(&from_pubkey.key(), &to_pubkey.key(), amount);
+ 
+
+
+    invoke(instruction, &[from_pubkey, to_pubkey, program_id])?;
+    Ok(())
+}
+```
+
+
+
+#### **需要程序派生地址 (PDA) 签名者的转账**
+
+```rust
+let user_key = ctx.accounts.user.key();
+let signer_seeds: &[&[&[u8]]] =
+    &[&[b"vault", user_key.as_ref(), &[ctx.bumps.vault_account]]];
+
+let transfer_accounts = Transfer {
+    from: ctx.accounts.vault_account.to_account_info(),
+    to: ctx.accounts.user.to_account_info(),
+};
+let cpi_context = CpiContext::new(
+    ctx.accounts.system_program.to_account_info(),
+    transfer_accounts,
+).with_signer(signer_seeds);
+transfer(cpi_context, ctx.accounts.vault_account.lamports())?;
+```
+
+**PDA 的签名种子**
+
+`let signer_seeds: &[&[&[u8]]] = &[&[b"vault", user_key.as_ref(), &[ctx.bumps.vault_account]]];`
+
+**第一层：`[u8]` —— 基础数据（种子碎片）**
+
+这是最基础的字节数组。
+
+- **代表什么**：一个具体的种子。
+- **例子**：`b"vault"`（字符串转字节）或者 `user_key.as_ref()`（公钥字节）。
+
+**第二层：`&[&[u8]]` —— 一个 PDA 的完整种子包**
+
+这是一组引用，把多个“种子碎片”组合在一起，形成一个能够推导出特定 PDA 的集合。
+
+- **代表什么**：**一个** PDA 的完整身份证明。
+- **例子**：一个 PDA 可能由字符串、用户公钥和 Bump 组成： `&[b"vault", user_key.as_ref(), &[bump]]`
+
+**第三层：`&[&[&[u8]]]` —— 签名者集合**
+
+这是最外层，也是 `CpiContext::new_with_signer` 要求传入的格式。
+
+- **代表什么**：**一组** 参与签名的 PDA 列表。
+- **为什么这么设计？** 因为一笔交易可能需要**多个不同的 PDA** 同时授权签名。即便你这次只用一个 PDA 签名，你也得把它装进这个“列表”里。
+
+
+
+**`.to_account_info()`:**
+
+将 Anchor 封装的高级类型（如 `Signer`, `Account`, `Program` 等）“降级”回 Solana 原生的 **`AccountInfo`** 类型。
+
+Anchor 提供了 `Signer`、`Account` 、`Program`等高级包装器，它们自带了权限校验和数据解析功能。
+
+但是，当你准备发起 **CPI（跨程序调用）** 时，被调用的程序（比如官方的系统程序或 Token 程序）并不认识 Anchor 的这些高级包装器。**它们只接受 Solana 最原始的数据格式：`AccountInfo`。**
+
+转化后都会暴露以下字段：
+
+- **`key`**: 账户的公钥。
+- **`is_signer`**: 是否签署了交易。
+- **`is_writable`**: 是否可写入。
+- **`lamports`**: 账户里的余额。
+- **`data`**: 账户存储的原始二进制数据。
+- **`owner`**: 谁拥有这个账户。
+
+
+
+**`.with_signer(signer_seeds)`**
+
+专门用于 **PDA（程序派生地址）发起 CPI（跨程序调用）** 
+
+如果你的程序（Program）想要代表一个它自己拥有的 PDA 账户去“签名”，就必须使用这个方法。
+
+内部流程：
+
+**验证身份**：Solana 接收到你传进去的 `seeds`，结合当前的 `program_id` 重新计算一个地址。
+
+**比对地址**：如果计算出的地址和你 CPI 账户清单（`transfer_accounts`）中的PDA账户地址**完全一致**。意味着这是一笔由创建PDA账户的程序发起的，那么就验证通过了
+
+**赋予权限**：Solana 会在这次 CPI 调用中，临时将该账户的 `is_signer` 标志位强制设为 **True**。
+
+
+
+**`vault_account.lamports()`:**
+
+返回**`u64`** 类型，代表的是该账户在链上真实的账本Sol余额，这包括了该账户为了维持“免租金（Rent-exempt）”状态而存储的最低 SOL，以及超出部分的资金。
+
+
+
+#### Rust原生调用PDA账户CPI
+
+`invoke_signed()` 从本质上讲，前面的例子是对用于 [`system_instruction::transfer`](https://github.com/anza-xyz/agave/blob/v1.18.26/sdk/program/src/system_instruction.rs#L881-L891) 构建指令的函数的封装。
+
+本示例展示了如何使用该`invoke_signed()`函数生成由 PDA 签名的 CPI。
+
+
+
+```
+use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+```
+
+
+
+```rust
+pub fn sol_transfer(ctx: Context<SolTransfer>, amount: u64) -> Result<()> {
+    let from_pubkey = ctx.accounts.pda_account.to_account_info();
+    let to_pubkey = ctx.accounts.recipient.to_account_info();
+    let program_id = ctx.accounts.system_program.to_account_info();
+ 
+    let seed = to_pubkey.key();
+    let bump_seed = ctx.bumps.pda_account;
+ 
+
+    let signer_seeds: &[&[&[u8]]] = &[&[b"pda", seed.as_ref(), &[bump_seed]]];
+ 
+
+    let instruction =
+        &system_instruction::transfer(&from_pubkey.key(), &to_pubkey.key(), amount);
+ 
+
+
+    invoke_signed(instruction, &[from_pubkey, to_pubkey, program_id], signer_seeds)?;
+    Ok(())
+}
+```
+
+此实现与前面的示例在功能上等效。参数 `signer_seeds`被传递给`invoke_signed`函数。
+
+
+
+### Solana签名校验过程
+
+**1. 第一阶段：预校验（Runtime 层面）**
+
+**发生时间：** 交易进入节点、被打包进区块之前。 **校验者：** Solana Runtime（运行时 / 银行模块）。
+
+当一个用户（Signer）发送交易时，这笔交易包含：
+
+1. **Message**（交易内容：包含了账户列表、指令数据、最近的 Blockhash 等）。
+2. **Signatures**（签名列表：由私钥对 Message 加密生成的字节流）。
+
+**校验过程：**
+
+- **Ed25519 验证**：Runtime 会读取交易中标记为 `is_signer` 的账户地址（公钥），并使用该公钥去验证签名列表中对应的签名。
+- **物理完整性检查**：如果签名与 Message 内容不匹配（即 Message 被篡改过），或者签名不是由该公钥对应的私钥生成的，Runtime 会**直接丢弃**这笔交易。
+- **权限赋予**：只有通过了这个物理校验，Runtime 才会将该账户在上下文中的 `is_signer` 标志位置为 `true`。
+
+------
+
+**2. 第二阶段：逻辑校验（程序层面）**
+
+**发生时间：** 交易执行时（你的代码运行期间）。 **校验者：** **你的程序（Anchor 框架）**。
+
+虽然第一阶段保证了“这个账户确实签了名”，但它不知道“这个签名是否符合你的业务逻辑”。
+
+**校验过程（以 Anchor 为例）：** 在你编写 `pub struct Create<'info>` 时：
+
+Rust
+
+```
+pub struct Create<'info> {
+    pub user: Signer<'info>, // <--- 关键点
+}
+```
+
+Anchor 框架生成的代码会自动执行以下逻辑：
+
+- **检查标志位**：它会查看传入的 `user` 账户信息，检查其 `is_signer` 标志位是否为 `true`。
+- **抛出错误**：如果标志位为 `false`（意味着这个账户没有在第一阶段提供物理签名），程序会立即报错并终止，防止有人伪造你的 `user` 账户地址。
+
+
+
+**特殊情况：CPI 时的 PDA 签名**
+
+当你使用 `invoke_signed` 或 `.with_signer(seeds)` 时：
+
+- **谁来校验？** 依然是 **Runtime**。
+- **校验逻辑**：Runtime 不检查私钥签名，而是重新计算你的 `seeds + program_id` 是否等于那个 PDA 地址。如果匹配，Runtime 会在这次 CPI 调用中，临时把那个 PDA 账户的 `is_signer` 贴纸贴上去。
+
+
+
+
+
+**`#[access_control(check(&ctx))]`**
+
+是 Anchor 提供的一个宏,它像一个“门卫”，在进入具体的业务逻辑函数**之前**，先去执行 `check` 函数。如果 `check` 返回 `Ok(())`，业务逻辑才会继续；如果返回 `Err`，整个交易直接失败并回滚。
+
+```
+const OWNER: &str = "8os8PKYmeVjU1mmwHZZNTEv5hpBXi5VvEKGzykduZAik";
+
+#[access_control(check(&ctx))]
+// 要校验owner的函数
+
+fn check(ctx: &Context<InitializeCandidate>) -> Result<()> {
+    // Check if signer === owner
+
+    require_keys_eq!(
+        ctx.accounts.payer.key(),
+        OWNER.parse::<Pubkey>().unwrap(),
+        OnlyOwnerError::NotOwner
+    );
+
+    Ok(())
+}
+```
+
+`OWNER.parse::<Pubkey>().unwrap()` 将上面的常量字符串解析为真正的 `Pubkey` 类型
+
+
+
+#### 账户约束方案：`#[account(constraint = ...)]`
+
+现代 Anchor 开发中，我们通常不使用单独的 `check` 函数，而是直接在 `Accounts` 结构体中使用 **Constraint（约束）**，这样代码更简洁、可读性更高：
+
+Rust
+
+```
+#[derive(Accounts)]
+pub struct InitializeCandidate<'info> {
+    #[account(
+        mut,
+        constraint = payer.key() == OWNER.parse::<Pubkey>().unwrap() @ OnlyOwnerError::NotOwner
+    )]
+    pub payer: Signer<'info>,
+    // ... 其他账户
+}
+```
+
+
+
+**`#[derive(InitSpace)]` 自动计算 Solana 账户（Account）所需的空间大小**
+
+```
+#[account]
+#[derive(InitSpace)]
+
+pub struct Candidate {
+    pub votes_received: u8,
+}
+
+```
+
+当你给结构体加上 `#[derive(InitSpace)]` 宏时，编译器会自动为该结构体生成一个长度常量
+
+可以通过 `::INIT_SPACE` 访问的常量，代表该结构体**理论上的最大占用空间**
+
+比如**space = 8 + Candidate::INIT_SPACE**
+
+
+
+**基础类型**：`u8`, `u64`, `Pubkey` 等都有固定的大小，`InitSpace` 会直接累加。
+
+**动态类型（String/Vec）**：因为这些类型的大小不固定，你**必须**使用 `#[max_len(...)]` 属性告诉 Anchor 该字段预留的最大长度。
+
+**Discrimantor (8字节)**：在使用 `space = ...` 时，永远记得加上 `8`，这是 Anchor 用来识别账户类型的固定开头。
+
+**常见类型空间对照表**
+
+| **类型**      | **空间大小 (字节)**         |
+| ------------- | --------------------------- |
+| `u8` / `bool` | 1                           |
+| `u64` / `i64` | 8                           |
+| `Pubkey`      | 32                          |
+| `Option<T>`   | 1 + T 的空间                |
+| `String`      | 4 + 最大长度                |
+| `Vec<T>`      | 4 + (T 的空间 * 最大元素数) |
+
+
+
+## 与SPL交互
+
+[`anchor-spl`](https://github.com/coral-xyz/anchor/tree/0e5285aecdf410fa0779b7cd09a47f235882c156/spl)工具包简化了在Anchor程序中与 Solana 的代币计划进行交互的流程。它包含了原始代币计划和较新的代币扩展计划（Token 2022）的说明和账户类型。
+
+```
+cargo add anchor-spl
+```
+
+```
+[features]
+idl-build = [
+    "anchor-lang/idl-build",
+    "anchor-spl/idl-build",
+]
+ 
+[dependencies]
+anchor-lang = "0.32.1"
+anchor-spl = "0.32.1"
+```
+
+#### [核心模块](https://www.anchor-lang.com/docs/tokens#core-modules)
+
+该软件包提供的最常用模块`anchor-spl`包括：
+
+| 模块                                                         | 描述                                                 |
+| ------------------------------------------------------------ | ---------------------------------------------------- |
+| [`token`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/spl/src/token.rs) | 代币计划（旧版）说明和账户类型                       |
+| [`token_2022`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/spl/src/token_2022.rs) | Token 2022 基本指令（与 Token 程序功能相匹配的指令） |
+| [`token_2022_extensions`](https://github.com/coral-xyz/anchor/tree/0e5285aecdf410fa0779b7cd09a47f235882c156/spl/src/token_2022_extensions) | Token 2022 扩展说明                                  |
+| [`token_interface`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/spl/src/token_interface.rs) | 实施可同时适用于代币计划和 2022 年代币计划的账户类型 |
+| [`associated_token`](https://github.com/coral-xyz/anchor/blob/0e5285aecdf410fa0779b7cd09a47f235882c156/spl/src/associated_token.rs) | 关联令牌账户说明                                     |
+
+
+
+### 创建Token Mint
+
+
+
+
+
+
+
+
+
+### 隐私转账
+
+保密转账允许你在 token account 之间转移代币时不公开转账金额。这对于保护隐私的交易非常有用。只有转账金额和 token 余额是私密的，token account 地址仍然是公开的。
+
+
+
+
+
+
+
+
+
+
+
