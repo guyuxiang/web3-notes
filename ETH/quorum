@@ -1,0 +1,195 @@
+export ADDRESS=$(grep -o '"address": *"[^"]*"' ./data/keystore/accountKeystore | grep -o '"[^"]*"$' | sed 's/"//g')
+export PRIVATE_CONFIG=ignore
+../geth --datadir data \
+    --networkid 1337 --nodiscover --verbosity 5 \
+    --syncmode full --nousb \
+    --raft --raftport 53000 --raftblocktime 300 --emitcheckpoints \
+    --http --http.addr 127.0.0.1 --http.port 8545 --http.corsdomain "*" --http.vhosts "*" \
+    --ws --ws.addr 127.0.0.1 --ws.port 8546 --ws.origins "*" \
+    --http.api admin,trace,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft \
+    --ws.api admin,trace,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft \
+    --unlock ${ADDRESS} --allow-insecure-unlock --password ./data/keystore/accountPassword \
+    --port 30300
+
+0x13b80990d2845c5b2501c2d97550446fa8d13bdc34b78a82554dc50484202d45
+
+
+NODE_ENDPOINT=http://localhost:22000 docker-compose -f docker-compose.yml -f chainlens-extensions/docker-compose-quorum.yml up
+
+区块链浏览器
+
+配置项确认
+
+部署k8 docker确认
+
+npx quorum-genesis-tool --consensus raft --chainID 1337 --blockperiod 5 --requestTimeout 10 --epochLength 30000 --difficulty 1 --gasLimit '0xFFFFFF' --coinbase '0x0000000000000000000000000000000000000000' --validators 2 --members 0 --bootnodes 0 --outputPath 'artifacts'
+
+export ADDRESS=$(grep -o '"address": *"[^"]*"' ./data/keystore/accountKeystore | grep -o '"[^"]*"$' | sed 's/"//g')
+export PRIVATE_CONFIG=ignore
+
+docker run -p 8545:8545 -p 8546:8546 -e PRIVATE_CONFIG=ignore -v ./data:/data quorumengineering/quorum:latest --datadir /data \
+    --networkid 1337 --nodiscover --verbosity 5 \
+    --syncmode full --nousb \
+    --raft --raftport 53000 --raftblocktime 1000 --emitcheckpoints \
+    --http --http.addr 0.0.0.0 --http.port 8545 --http.corsdomain "*" --http.vhosts "*" \
+    --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.origins "*" \
+    --http.api admin,trace,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft \
+    --ws.api admin,trace,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft \
+    --unlock $(grep -o '"address": *"[^"]*"' ./data/keystore/accountKeystore | grep -o '"[^"]*"$' | sed 's/"//g') --allow-insecure-unlock --password /data/keystore/accountPassword \
+    --port 30300
+
+
+
+
+
+1. 区块链浏览器选择
+2. 配置方案：配置项说明 + 方案
+3. 部署方案：资源要求调研、环境个数、资源选择、节点数量、Quorum的数据挂载情况、监控
+
+
+
+
+npx quorum-genesis-tool --consensus qbft --chainID 1337 --blockperiod 5 --requestTimeout 10 --epochLength 30000 --difficulty 1 --gasLimit '0xFFFFFF' --coinbase '0x0000000000000000000000000000000000000000' --validators 1 --members 0 --bootnodes 0 --outputPath 'artifacts'
+
+geth --datadir data init data/genesis.json
+
+docker run -p 8545:8545 -p 8546:8546 -e PRIVATE_CONFIG=ignore -v ./data:/data quorumengineering/quorum:latest --datadir /data \
+    --networkid 1337 --nodiscover --verbosity 5 \
+    --syncmode full \
+    --istanbul.blockperiod 1 --mine --miner.threads 1 --miner.gasprice 0 --emitcheckpoints \
+    --http --http.addr 0.0.0.0 --http.port 8545 --http.corsdomain "*" --http.vhosts "*" \
+    --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.origins "*" \
+    --http.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul \
+    --ws.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul \
+    --unlock $(grep -o '"address": *"[^"]*"' ./data/keystore/accountKeystore | grep -o '"[^"]*"$' | sed 's/"//g') --allow-insecure-unlock --password /data/keystore/accountPassword \
+    --port 30300
+
+
+nohup make start > runoob.log 2>&1 &
+
+
+docker run -d -p 8545:8545 -p 8546:8546 -p 30300:30300 -e PRIVATE_CONFIG=ignore -v /home/llsuser/QBFT-Network/Node-0/data:/data quorumengineering/quorum:latest --datadir /data \
+    --networkid 1337 --nodiscover --verbosity 5 \
+    --syncmode full \
+    --mine --miner.threads 1 --miner.gasprice 1 --emitcheckpoints \
+    --http --http.addr 0.0.0.0 --http.port 8545 --http.corsdomain "*" --http.vhosts "*" \
+    --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.origins "*" \
+    --http.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul \
+    --ws.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul \
+    --unlock 12f2754773685d3fffab0e4fb551dff73dbe965f --allow-insecure-unlock --password /data/keystore/accountPassword \
+    --port 30300
+
+
+
+// --nodiscover 确保未手动添加您的人员无法发现您的节点
+// --verbosity 日志等级0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail (default: 3)
+ 
+genesis.json 
+
+{
+  "nonce": "0x0",
+  "timestamp": "0x58ee40ba",        // 限制区块链启动时间,大于时间戳1492009146
+  "extraData": "0xf83aa00000000000000000000000000000000000000000000000000000000000000000d59496bd7c7e805572b21cb5cbcbbbe2c73b3c27eefdc080c0",
+  "gasLimit": "0xFFFFFF",       // 区块gas限制,设置为最大
+  "gasUsed": "0x0",
+  "number": "0x0",
+  "difficulty": "0x1",
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "config": {
+    "chainId": 1337,                         // 链id
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "muirglacierblock": 0,
+    "berlinBlock": 0,
+    "londonBlock": 0,
+    "isQuorum": true,                         // 启用GoQuorum工作模式
+    "maxCodeSizeConfig": [
+      {
+        "block": 0,
+        "size": 64                           // 最大智能合约代码大小，最多可配置128kbyte
+      }
+    ],
+    "txnSizeLimit": 64,                       // 区块最大交易规模大小，最多可配置128kbyte
+    "qbft": {                                 // 网络使用QBFT并包含QBFT配置项
+      "policy": 0,                            // 0:验证者轮流提出区块 1:单个验证者出区块，直到它离线或无法访问
+      "epoch": 30000,                         // epoch周期区块数
+      "ceil2Nby3Block": 0,
+      "testQBFTBlock": 0,
+      "blockperiodseconds": 1,                // 最短出块时间，以秒为单位
+      "emptyblockperiodseconds": 60,          // 无交易空块的出块时间，以秒为单位
+      "requesttimeoutseconds": 5             // 每个共识轮次的超时时间，以秒为单位
+    }
+  },
+  "alloc": {
+    "0x12f2754773685d3fffab0e4fb551dff73dbe965f": {
+      "balance": "1000000000000000000000000000"          // 初始化指定账户余额
+    }
+  }
+}
+
+
+
+https://projectc-quorumscan.hrlyit.com/
+https://projectc-quorumscan.hrlyit.com/api/v1/counters
+
+
+钻石合约6个功能切片合约的开发 2.5天
+与原dtt合约关联的相关合约改造 0.5天
+合约测试脚本开发及测试 1.5天
+部署, 升级, 配置, 合约ABI合并生成脚本开发 2天
+整体测试, 合约部署工具联调 1天
+
+
+
+
+nohup geth --gcmode "archive" --datadir ./data0 --networkid 25 --http --http.addr 0.0.0.0 --http.api "web3,personal,admin,net,eth,miner,rpc,txpool,clique" --http.port 8721 --graphql --http.corsdomain "*" --port 30305 --mine --allow-insecure-unlock --unlock '0xfcc6a868d13720d30ea3b4aea26833bb4b4c1548' --password passwd.txt --rpc.allow-unprotected-txs  --ws --ws.addr "0.0.0.0" --ws.port 8546 > geth0613.log 2>&1 &
+
+
+geth --gcmode "archive" --datadir ./data0 --networkid 25 --http --http.addr 0.0.0.0 --http.api "web3,personal,admin,net,eth,miner,rpc,txpool,clique" --http.port 8721 --graphql --http.corsdomain "*" --port 30305 --mine --allow-insecure-unlock --unlock '0xfcc6a868d13720d30ea3b4aea26833bb4b4c1548' --password passwd.txt --rpc.allow-unprotected-txs  --ws --ws.addr "0.0.0.0" --ws.port 8546 
+
+
+nohup geth export --datadir ./data0 backup0530.rlp 0 25000000 > gethexport0530.log 2>&1 &
+
+docker run -it -v /home/llsuser/QBFT-Network/Node-0/data:/data quorumengineering/quorum:latest attach /data/geth.ipc
+
+
+docker logs -f -t --tail=200 d6a567652de9
+
+
+
+Node1 184
+docker run -v /home/llsuser/QBFT-Network/Node-1/data:/data quorumengineering/quorum:latest --datadir /data init /data/genesis.json
+
+docker run -d -p 8545:8545 -p 8546:8546 -p 30300:30300 -e PRIVATE_CONFIG=ignore -v /home/llsuser/QBFT-Network/Node-1/data:/data quorumengineering/quorum:latest --datadir /data \
+    --networkid 1337 --nodiscover --verbosity 5 \
+    --syncmode full \
+    --mine --miner.threads 1 --miner.gasprice 1 --emitcheckpoints \
+    --http --http.addr 0.0.0.0 --http.port 8545 --http.corsdomain "*" --http.vhosts "*" \
+    --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.origins "*" \
+    --http.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul \
+    --ws.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul \
+    --unlock dbbdd3832139e4e5ec263949dae229589a065003 --allow-insecure-unlock --password /data/keystore/accountPassword \
+    --port 30300
+
+
+
+
+Node1
+docker run -v /home/llsuser/QBFT-Network/Node-1/data:/data quorumengineering/quorum:latest --datadir /data init /data/genesis.json
+
+docker run -d -p 8545:8545 -p 8547:8546 -p 30300:30300 -e PRIVATE_CONFIG=ignore -v /home/llsuser/QBFT-Network/Node-1/data:/data quorumengineering/quorum:latest --datadir /data     --networkid 1337 --nodiscover --verbosity 5     --syncmode full     --mine --miner.threads 1 --miner.gasprice 1 --emitcheckpoints     --http --http.addr 0.0.0.0 --http.port 8545 --http.corsdomain "*" --http.vhosts "*"     --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.origins "*"     --http.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul     --ws.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul     --unlock dbbdd3832139e4e5ec263949dae229589a065003 --allow-insecure-unlock --password /data/keystore/accountPassword     --port 30300
+
+
+istanbul.propose("0xb4362a48c3e6826ec483e512b95411f426dc2642", false);
+
+
+docker run -p 8545:8545 -p 8546:8546 -p 30303:30303 -v /opt/besu-sepolia/config:/config ghcr.io/guyuxiang/hyperledger/besu:latest --config-file=/config/config-snap-sepolia.toml --genesis-file=/config/genesis-sepolia.json --p2p-host=172.16.184.142

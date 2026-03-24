@@ -1,0 +1,571 @@
+# Solidity
+
+- **Solidity 0.8+**：利用内置的溢出检查，无需 SafeMath 库
+
+  
+
+bool
+int
+uint
+uint256
+
+address 20 字节的值（以太坊地址的大小）
+address payable       
+payable修饰的地址相对普通地址多了transfer和send两个成员
+send执行失败不会影响当前合约的执行（但是返回false值，需要开发人员检查send返回值）
+.balance可以用来查询ETH余额
+transfer()，安全转账（内置执行失败的处理）。
+
+字节数组 
+定长（byte, bytes8, bytes32）
+不定长
+
+枚举（冷门）
+enum
+
+函数
+function <function name>(<parameter types>) {internal|external|public|private} [pure|view|payable] [returns (<return types>)]
+
+public: 内部外部均可见。     没有标明可见性类型的函数，默认为public。
+private: 只能从本合约内部访问，继承的合约也不能用。
+internal: 只能从合约内部访问，继承的合约可以用。
+external: 只能从合约外部访问（但是可以用this.f()来调用，f是函数名）。
+
+public|private|internal 也可用于修饰状态变量。 public变量会自动生成同名的getter函数，用于查询数值。
+没有标明可见性类型的状态变量，默认为internal。
+
+payable: 带着它的函数，运行的时候可以给合约转入ETH
+pure: 不能读取也不能写入存储在链上的状态变量
+view: 能读取但也不能写入状态变量
+默认不填，函数既可以读取也可以写入状态变量
+solidity引入pure和view关键字主要是为了节省gas和控制函数权限：如果用户直接调用pure/view方程是不消耗gas的（合约中非pure/view函数调用它们则会改写链上状态，需要付gas）。
+
+以下语句被视为修改链上状态：
+写入状态变量。
+释放事件。
+创建其他合约。
+使用selfdestruct.
+通过调用发送以太币。
+调用任何未标记view或pure的函数。
+使用低级调用（low-level calls）。
+使用包含某些操作码的内联汇编。
+
+returns加在函数名后面，用于声明返回的变量类型及变量名；
+例returns(uint256, bool, uint256[3]
+例returns(uint256 _number, bool _bool, uint256[3] memory _array)  命名式返回,会自动给这些变量初始化
+
+return用于函数主体中，返回指定的变量。 
+例return(1, true, [uint256(1),2,5])
+命名式返回可以不需要加return
+
+solidity使用解构式赋值的规则，支持读取函数的全部或部分返回值
+(_number, _bool, _array) = returnNamed();
+(, _bool2, ) = returnNamed();
+
+引用类型(Reference Type)：包括数组（array），结构体（struct）和映射（mapping）
+这类变量占空间大，赋值时候直接传递地址（类似指针）。
+由于这类变量比较复杂，占用存储空间大，我们在使用时必须要声明数据存储的位置。
+solidity数据存储位置有三类：
+storage: 数据存在链上,消耗gas多,合约里的状态变量默认都是storage
+memory: 临时存在内存里，消耗gas少, 函数里的参数和临时变量一般用memory
+calldata: 临时存在内存里，消耗gas少, calldata变量不能修改，一般用于函数的参数
+
+storage（合约的状态变量）赋值给本地storage（函数里的）时候，会创建引用，改变新变量会影响原变量
+storage赋值给memory，会创建独立的副本，修改其中一个不会影响另一个
+memory赋值给memory，会创建引用，改变新变量会影响原变量。
+
+Solidity中变量按作用域划分有三种
+状态变量是数据存储在链上的变量，所有合约内函数都可以访问 ，gas消耗高。状态变量在合约内、函数外声明
+局部变量是仅在函数执行过程中有效的变量，函数退出后，变量无效。局部变量的数据存储在内存里，不上链，gas低。局部变量在函数内声明
+全局变量是全局范围工作的变量，都是solidity预留关键字。他们可以在函数内不声明直接使用,
+例如
+blockhash(uint blockNumber): (bytes32)给定区块的哈希值 – 只适用于256最近区块, 不包含当前区块。
+block.coinbase: (address payable) 当前区块矿工的地址
+block.gaslimit: (uint) 当前区块的gaslimit
+block.number: (uint) 当前区块的number
+block.timestamp: (uint) 当前区块的时间戳，为unix纪元以来的秒
+gasleft(): (uint256) 剩余 gas
+msg.data: (bytes calldata) 完整call data
+msg.sender: (address payable) 消息发送者 (当前 caller)
+msg.sig: (bytes4) calldata的前四个字节 (function identifier)
+msg.value: (uint) 当前交易发送的wei值
+
+数组
+固定长度数组：在声明时指定数组的长度。用T[k]的格式声明，其中T是元素的类型，k是长度  uint[8] array1
+可变长度数组（动态数组）：在声明时不指定数组的长度。用T[]的格式声明，其中T是元素的类型  uint[] array4
+bytes比较特殊，是数组，但是不用加[]，或使用bytes1[]声明字节数组
+在gas上，bytes比bytes1[]便宜。因为bytes1[]在memory中要增加31个字节进行填充，会产生额外的gas。但是在storage中，由于内存紧密打包，不存在字节填充。
+
+数组声明
+对于memory修饰的动态数组，可以用new操作符来创建，但是必须声明长度，并且声明后长度不能改变
+   uint[] memory x = new uint[](3);
+   x[0] = 1;
+   x[1] = 3;
+   x[2] = 4;
+
+字母量声明：
+[1, 2,3]每一个元素的type是以第一个元素为准的,如果一个值没有指定type的话，默认就是最小单位的该type
+例如int的默认最小单位类型就是uint8，因此用字面量做传参时，要注意字面量的元素类型的函数定义的形参类型是否一致
+
+x.length:返回数组的元素数量
+x.push()：动态数组和bytes，在数组最后添加一个0元素
+x.push(x)：动态数组和bytes，可以在数组最后添加一个x元素
+x.pop()：动态数组和bytes，可以移除数组最后一个元素
+
+结构体
+// 声明类型
+struct Student{
+        uint256 id;
+        uint256 score; 
+    }
+// 声明变量
+Student student;
+// 赋值
+student.id = 1;
+student.score = 2;
+// 引用赋值，因为storage（合约的状态变量）赋值给本地storage（函数里的）时候，会创建引用，改变新变量会影响原变量
+Student storage _student = student;
+_student.id = 1
+_student.score = 2;
+
+map映射
+声明映射的格式为mapping(_KeyType => _ValueType)，其中_KeyType和_ValueType分别是Key和Value的变量类型。
+例
+mapping(uint => address) public idToAddress; // id映射到地址
+
+_KeyType只能选择solidity默认的类型，不能用自定义的结构体。
+_ValueType可以使用自定义的类型
+
+映射的存储位置必须是storage，因此可以用于合约的状态变量，函数中的storage变量，和library函数的参数（见例子）。不能用于public函数的参数或返回结果中
+如果映射声明为public，那么solidity会自动给你创建一个getter函数，可以通过Key来查询对应的Value。
+// 赋值
+_Var[_Key] = _Value
+
+map赋值取值是通过keccak256(key)计算key当成offset存取value,因此map不存储任何key,也不存储length
+
+声明但没赋值的变量都有它的初始值或默认值
+boolean: false
+string: ""
+int: 0
+uint: 0
+enum: 枚举中的第一个元素
+address: 0x0000000000000000000000000000000000000000 (或 address(0))
+function
+	internal: 空白方程
+	external: 空白方程
+映射mapping: 所有元素都为其默认值
+结构体struct: 所有成员设为其默认值的结构体
+数组array
+动态数组: []
+静态数组（定长）: 所有成员设为其默认值的静态数组
+
+delete操作符:让变量a的值变为初始值 delete a;
+
+常量：
+必须在声明的时候初始化，之后再也不能改变
+uint256 constant CONSTANT_NUM = 10;
+不变量：
+可以在声明时或构造函数中初始化
+uint256 public immutable IMMUTABLE_NUM；
+IMMUTABLE_NUM = 1;
+
+常量和不变量声明初始化后，不能在合约后更改数值，并且还可以节省gas，提升合约的安全性
+只有数值变量可以声明constant和immutable；string和bytes可以声明为constant，但不能为immutable。
+
+控制语句
+if() {
+	
+}else{
+	
+}
+
+for(uint i = 0; i < 10; i++){
+    
+}
+
+while(i < 10){
+
+}
+
+do{
+
+}while(i < 10);
+
+三元运算符
+function ternaryTest(uint256 x, uint256 y) public pure returns(uint256){
+    // return the max of x and y
+    return x >= y ? x: y; 
+}
+
+continue
+
+break
+
+构造函数
+构造函数（constructor）是一种特殊的函数，每个合约可以定义一个，并在部署合约的时候自动运行一次。它可以用来初始化合约的一些参数
+
+// 构造函数
+constructor() {
+  owner = msg.sender; // 在部署合约的时候，将owner设置为部署者的地址
+}
+
+修饰器
+modifier的主要使用场景是运行函数前的检查
+
+// 定义modifier
+modifier onlyOwner {
+  require(msg.sender == owner); // 检查调用者是否为owner地址
+  _; // 如果是的话，继续运行函数主体；否则报错并revert交易
+}
+
+// 声明函数时可以加上该修饰器
+function changeOwner(address _newOwner) external onlyOwner{
+  owner = _newOwner; // 只有owner地址运行这个函数，并改变owner
+}
+
+事件
+事件（event）是EVM上日志的抽象，它具有两个特点：
+响应：应用程序（ethers.js）可以通过RPC接口订阅和监听这些事件，并在前端做响应。
+经济：事件是EVM上比较经济的存储数据的方式，每个大概消耗2,000 gas；相比之下，链上存储一个新变量至少需要20,000 gas。
+
+事件的声明由event关键字开头，接着是事件名称，括号里面写好事件需要记录的变量类型和变量名
+例：
+每条日志记录都包含主题topics和数据data两部分
+主题 Topics,用于描述事件，长度不能超过4。它的第一个元素是事件的签名（哈希）
+	除了事件签名，主题还可以包含至多3个indexed参数
+	indexed标记的参数可以理解为检索事件的索引“键”，方便之后搜索。每个 indexed 参数的大小为固定的256比特，如果参数太大了（比如字符串），就会自动计算哈希存储在主题中。
+数据 Data,事件中不带 indexed的参数会被存储在 data 部分中
+	data 部分的变量不能被直接检索，但可以存储任意大小的数据。因此一般 data 部分可以用来存储复杂的数据结构，例如数组和字符串等等，因为这些数据超过了256比特，即使存储在事件的 topic 部分中，也是以哈希的方式存储。另外，data 部分的变量在存储上消耗的gas相比于 topic 更少。
+
+event Transfer(address indexed from, address indexed to, uint256 value);
+indexed关键字，他们会保存在以太坊虚拟机日志的topics中，方便之后检索
+无indexed则会保存在data中
+
+// 记录事件
+emit Transfer(from, to, amount);
+
+在etherscan上查询事件
+
+继承
+合约可以继承合约
+// baba合约继承yeye合约
+contract Baba is Yeye{
+	
+}
+
+在变量或函数中加上关键字
+virtual: 父合约中的函数，如果希望子合约重写，需要加上virtual关键字。
+override：子合约重写了父合约中的函数，需要加上override关键字。
+
+多重继承
+合约可以继承多个合约，且多个合约有继承关系
+那么声明继承时要按辈分最高到最低的顺序排
+contract Erzi is Yeye, Baba{
+	
+}
+如果某一个函数在多个继承的合约里都存在，比如例子中的hip()和pop()，在子合约里必须重写，不然会报错
+重写在多个父合约中都重名的函数时，override关键字后面要加上所有父合约名字，例如override(Yeye, Baba)
+例
+function hip() public virtual override(Yeye, Baba){
+    emit Log("Erzi");
+}
+
+修饰器继承
+用法与函数继承类似，在相应的地方加virtual和override关键字即可。
+可以在函数声明中直接使用父合约的修饰器，也可以使用override关键字重写修饰器：
+
+构造函数的继承
+如果父类的构造方法是无参,则solidity会自动调用
+如果父类的构造方法是有参,则solidity必须手动调用父类构造方法传入参数初始化,否则合约无法部署
+
+如果构造函数有形参，在继承时声明父构造函数的参数，
+例如：contract B is A(1) {}
+或
+contract B is A {
+	constructor(uint b) A(b+b) {
+
+	}
+}
+
+调用父合约的函数
+直接调用：子合约可以直接用 父合约名.函数名() 的方式来调用父合约函数
+super关键字：子合约可以利用super.函数名()来调用最近的父合约函数,当有多重继承时，super指代最近的父合约
+
+钻石继承
+钻石继承（菱形继承）指一个派生类同时有两个或两个以上的基类
+使用super会调用继承链条上的每一个合约的相关函数
+执行顺序依照继承关系的DAG（有向无环图），从下往上执行
+
+抽象合约
+如果一个智能合约里至少有一个未实现的函数，即某个函数缺少主体{}中的内容，则必须将该合约标为abstract，不然编译会报错；另外，未实现的函数需要加virtual，以便子合约重写。
+
+接口
+接口类似于抽象合约，但它不实现任何功能，只是定义函数或事件，每个函数都以;代替函数体{ }结尾
+
+不能包含状态变量
+不能包含构造函数
+不能继承除接口外的其他合约
+所有函数都必须是external且不能有函数体
+继承接口的合约必须实现接口定义的所有功能
+
+如果智能合约实现了某种接口（比如ERC20或ERC721），其他Dapps和智能合约就知道如何与它交互而不需要知道他的具体代码实现，接口相当于定义了一个标准
+
+接口与合约ABI（Application Binary Interface）等价，可以相互转换：编译接口可以得到合约的ABI，利用abi-to-sol工具也可以将ABI json文件转换为接口sol文件。
+
+// 与某个实现接口的合约交互
+contract interactBAYC {
+    // 利用BAYC地址创建接口合约变量（ETH主网）
+    IERC721 BAYC = IERC721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+
+    // 通过接口调用BAYC的balanceOf()查询持仓量
+    function balanceOfBAYC(address owner) external view returns (uint256 balance){
+        return BAYC.balanceOf(owner);
+    }
+    
+    // 通过接口调用BAYC的safeTransferFrom()安全转账
+    function safeTransferFromBAYC(address from, address to, uint256 tokenId) external{
+        BAYC.safeTransferFrom(from, to, tokenId);
+    }
+}
+
+异常
+error是solidity 0.8.4版本新加的内容，方便且高效（省gas）地向用户解释操作失败的原因，同时还可以在抛出异常的同时携带参数
+
+在contract之外定义异常
+// 定义
+error TransferNotOwner(address sender);
+
+// 使用,error必须搭配revert（回退）命令使用
+revert TransferNotOwner();
+
+require命令是solidity 0.8版本之前抛出异常的常用方法，目前很多主流合约仍然还在使用它。它很好用，唯一的缺点就是gas随着描述异常的字符串长度增加，比error命令要高
+使用方法：require(检查条件，"异常的描述")，当检查条件不成立的时候，就会抛出异常。
+例 require(_owners[tokenId] == msg.sender, "Transfer Not Owner");
+
+assert命令一般用于程序员写程序debug，因为它不能解释抛出异常的原因（比require少个字符串）。它的用法很简单，assert(检查条件），当检查条件不成立的时候，就会抛出异常。
+例 assert(_owners[tokenId] == msg.sender);
+备注: Solidity 0.8.0之前的版本，assert抛出的是一个 panic exception，会把剩余的 gas 全部消耗，不会返还
+
+我们可以看到，error方法gas最少，其次是assert，require方法消耗gas最多
+
+重载
+solidity中允许函数进行重载
+名字相同但输入参数类型不同的函数可以同时存在，他们被视为不同的函数
+最终重载函数在经过编译器编译后，由于不同的参数类型，都变成了不同的函数选择器（selector）
+在调用重载函数时，会把输入的实际参数和函数参数的变量类型做匹配。 如果出现多个匹配的重载函数，则会报错。
+
+库合约（library）
+不能存在状态变量
+不能够继承或被继承
+不能接收以太币
+不可以被销毁
+
+使用库合约
+通过库合约名称调用库函数Strings.toHexString(_number);
+
+常用的有：
+Strings：将uint256转换为String
+Address：判断某个地址是否为合约地址
+Create2：更安全的使用Create2 EVM opcode
+Arrays：跟数组相关的库函数
+
+import
+1.通过源文件相对位置导入 import './Yeye.sol';
+2.通过源文件网址导入网上的合约 import 'https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Address.sol';
+3.通过npm的目录导入 import '@openzeppelin/contracts/access/Ownable.sol';
+
+声明库的方式
+// 声明yeye变量
+Yeye yeye = new Yeye();
+
+两种特殊的回调函数，
+receive() 用于处理接收ETH时触发,一个合约最多有一个receive()函数,
+receive() external payable { ... }。receive()函数不能有任何的参数，不能返回任何值，必须包含external和payable。
+最好不要执行太多的逻辑因为如果别人用send和transfer方法发送ETH的话，gas会限制在2300，receive()太复杂可能会触发Out of Gas报错；如果用call就可以自定义gas执行更复杂的逻辑
+
+fallback() 处理合约中不存在的函数调用时触发,可用于代理合约proxy contract
+fallback() external payable{} fallback()声明时不需要function关键字，必须由external修饰，一般也会用payable修饰
+触发fallback() 还是 receive()?
+           接收ETH
+              |
+         msg.data是空？
+            /  \
+          是    否
+          /      \
+receive()存在?   fallback()
+        / \
+       是  否
+      /     \
+receive()   fallback()
+合约接收ETH时，msg.data为空且存在receive()时，会触发receive()；msg.data不为空或不存在receive()时，会触发fallback()，此时fallback()必须为payable。
+
+receive()和payable fallback()均不存在的时候，向合约直接发送ETH将会报错（你仍可以通过带有payable的函数向合约发送ETH）。
+
+发送ETH
+transfer
+接收方地址.transfer(发送ETH数额)
+transfer()的gas限制是2300，足够用于转账，但对方合约的fallback()或receive()函数不能实现太复杂的逻辑
+transfer()如果转账失败，会自动revert（回滚交易）。
+一个合约给另一个合约发送ETH的前提是发送合约有足够的ETH
+
+send
+接收方地址.send(发送ETH数额)
+send()的gas限制是2300，足够用于转账，但对方合约的fallback()或receive()函数不能实现太复杂的逻辑。
+send()如果转账失败，不会revert。
+send()的返回值是bool，代表着转账成功或失败，需要额外代码处理一下。
+
+call
+接收方地址.call{value: 发送ETH数额}("")
+call()没有gas限制，可以支持对方合约fallback()或receive()函数实现复杂逻辑。
+call()如果转账失败，不会revert。
+call()的返回值是(bool, data)，其中bool代表着转账成功或失败，需要额外代码处理一下
+
+优先用call,但一些恶意合约可能会来消耗gas
+
+调用其他合约
+1.利用合约的地址和合约代码（或接口）来创建合约的引用(两个合约在一个文件中或import了要调用的合约)
+_Name(_Address)，其中_Name是合约名，_Address是合约地址
+然后用合约的引用来调用它的函数：_Name(_Address).f()，其中f()是要调用的函数。
+
+2.直接在函数里传入合约的地址
+定义函数形参时,address类型改为目标合约名,例如(OtherContract _Address)
+_Address.f()
+此时该函数参数OtherContract _Address底层类型仍然是address
+
+3.创建合约变量
+OtherContract oc = OtherContract(_Address)
+_Address为要调用的合约地址
+OtherContract为合约名
+
+4. 调用合约并发送ETH
+如果目标合约的函数是payable的，那么我们可以通过调用它来给合约转账：_Name(_Address).f{value: _Value}(x)，其中_Name是合约名，_Address是合约地址，f是目标函数名，_Value是要转的ETH数额（以wei为单位）,x为传参
+
+当我们不知道对方合约的源代码或ABI，就没法生成合约变量；这时，我们仍可以通过call调用对方合约的函数
+call的使用规则如下：
+目标合约地址.call(二进制编码);
+其中二进制编码利用结构化编码函数abi.encodeWithSignature获得：
+abi.encodeWithSignature("函数签名", 逗号分隔的具体参数)
+函数签名为"函数名（逗号分隔的参数类型)"。例如abi.encodeWithSignature("f(uint256,address)", _x, _addr)。
+
+另外call在调用合约时可以指定交易发送的ETH数额和gas：
+目标合约地址.call{value:发送数额, gas:gas数额}(二进制编码);
+
+call不是调用合约的推荐方法，因为不安全
+
+delegatecall
+而当用户A通过合约B来delegatecall合约C的时候，执行的是合约C的函数，但是语境仍是合约B的：msg.sender和address(this)是A的地址，并且如果函数改变一些状态变量，产生的效果会作用于合约B的变量上。
+
+delegatecall语法和call类似
+delegatecall在调用合约时可以指定交易发送的gas，但不能指定发送的ETH数额
+
+注意：delegatecall有安全隐患，使用时要保证当前合约和目标合约的状态变量存储结构相同，并且目标合约安全，不然会造成资产损失。
+
+应用场景
+1.代理合约（Proxy Contract）：将智能合约的存储合约和逻辑合约分开：代理合约（Proxy Contract）存储所有相关的变量，并且保存逻辑合约的地址；所有函数存在逻辑合约（Logic Contract）里，通过delegatecall执行。当升级时，只需要将代理合约指向新的逻辑合约即可。
+2.EIP-2535 Diamonds（钻石）：钻石是一个支持构建可在生产中扩展的模块化智能合约系统的标准。钻石是具有多个实施合同的代理合同
+
+在合约中创建新合约
+create
+ContractNew x = new ContractNew{value: _value}(params)
+其中Contract是要创建的合约名，x是合约对象（地址），如果构造函数是payable，可以创建时转入_value数量的ETH，params是新合约构造函数的参数。
+
+用的是create2创建合约，限制构造函数不能有参数。当使用create时，Pair合约允许构造函数有参数
+
+create2
+CREATE2 操作码使我们在智能合约部署在以太坊网络之前就能预测合约的地址
+
+合约的地址是hash(创建者地址, nonce)计算而来的
+创建者地址不会变，但nonce可能会随时间而改变，因此用CREATE创建的合约地址不好预测。
+CREATE2的目的是为了让合约地址独立于未来的事件。不管未来区块链上发生了什么，你都可以把合约部署在事先计算好的地址上
+新地址 = hash("0xFF",创建者地址, 一个创建者给定的数值salt, 待部署合约的字节码bytecode)
+
+ContractNew x = new ContractNew{salt: _salt, value: _value}(params)
+其中Contract是要创建的合约名，x是合约对象（地址），_salt是指定的盐；如果构造函数是payable，可以创建时转入_value数量的ETH，params是新合约构造函数的参数。
+
+// 计算合约地址方法 hash()
+predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
+    bytes1(0xff),
+    address(this),
+    salt,
+    keccak256(type(Pair).creationCode)
+)))))
+
+删除合约
+可以用来删除智能合约，并将该合约剩余ETH转到指定地址。selfdestruct是为了应对合约出错的极端情况而设计的
+selfdestruct(_addr)；
+_addr是接收合约中剩余ETH的地址
+当我们调用函数，合约将自毁，所有变量都清空
+
+对外提供合约销毁接口时，最好设置为只有合约所有者可以调用，可以使用函数修饰符onlyOwner进行函数声明。
+当合约被销毁后与智能合约的交互也能成功，并且返回0。
+
+ABI
+ABI (Application Binary Interface，应用二进制接口)是与以太坊智能合约交互的标准
+
+abi.encode
+将给定参数利用ABI规则编码。ABI被设计出来跟智能合约交互，他将每个参数填充为32字节的数据，并拼接在一起。如果你要和合约交互，你要用的就是abi.encode。
+由于abi.encode将每个数据都填充为32字节，中间有很多0
+
+abi.encodePacked
+将给定参数根据其所需最低空间编码。它类似 abi.encode，但是会把其中填充的很多0省略。可以使用abi.encodePacked，例如算一些数据的hash时
+
+abi.encodeWithSignature
+与abi.encode功能类似，只不过第一个参数为函数签名，比如"foo(uint256,address)"。当调用其他合约的时候可以使用。
+等同于在abi.encode编码结果前加上了4字节的函数选择器
+函数选择器就是通过函数名和参数进行签名处理(Keccak–Sha3)来标识函数，可以用于不同合约之间的函数调用
+ abi.encodeWithSignature("foo(uint256,address,string,uint256[2])", x, addr, name, array);
+
+abi.encodeWithSelector
+第一个参数为函数签名Keccak哈希的前4个字节
+abi.encodeWithSelector(bytes4(keccak256("foo(uint256,address,string,uint256[2])")), x, addr, name, array);
+
+abi.decode
+abi.decode用于解码abi.encode生成的二进制编码，将它还原成原本的参数
+
+ABI使用场景
+1.在合约开发中，ABI常配合call来实现对合约的底层调用
+2.ethers.js中常用ABI实现合约的导入和函数调用。
+3.对不开源合约进行反编译后，某些函数无法查到函数签名，可通过ABI进行调用。
+
+哈希函数
+Keccak256
+哈希 = keccak256(数据);
+keccak256(abi.encodePacked(_num, _string, _addr))
+
+函数签名为"函数名（逗号分隔的参数类型)"
+method id定义为函数签名的Keccak哈希后的前4个字节
+
+调用智能合约时，本质上是向目标合约发送了一段calldata
+input即为此次交易的calldata
+发送的calldata中前4个字节是selector（函数选择器）
+可以通过msg.data查看
+前4个字节为函数选择器selector：
+0x6a627842
+后面32个字节为输入的参数：
+0x0000000000000000000000002c44b726adf1963ca47af88b284c06f30380fc78
+
+当selector与method id相匹配时，即表示调用该函数
+
+try catch
+只能用于external外部合约调用和合约创建constructor。
+try externalContract.f() {
+    // call成功的情况下 运行一些代码
+} catch {
+    // call失败的情况下 运行一些代码
+}
+externalContract.f()是某个外部合约的函数调用
+可以使用this.f()来替代externalContract.f()，this.f()也被视作为外部调用，但不可在构造函数中使用，因为此时合约还未创建
+
+如果调用的函数有返回值，那么必须在try之后声明returns(returnType val),并且与返回的变量类型相同。
+如果是创建合约，那么返回值是新创建的合约变量。
+
+catch模块支持捕获特殊的异常原因：
+try externalContract.f() returns(returnType){
+    // call成功的情况下 运行一些代码
+} catch Error(string memory reason) {
+    // 捕获失败的 revert() 和 require()
+} catch (bytes memory reason) {
+    // 捕获失败的 assert()
+}
+
+103

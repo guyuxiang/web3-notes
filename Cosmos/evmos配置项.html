@@ -1,0 +1,618 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext' rel='stylesheet' type='text/css' /><style type='text/css'>html {overflow-x: initial !important;}:root { --bg-color: #ffffff; --text-color: #333333; --select-text-bg-color: #B5D6FC; --select-text-font-color: auto; --monospace: "Lucida Console",Consolas,"Courier",monospace; --title-bar-height: 20px; }
+.mac-os-11 { --title-bar-height: 28px; }
+html { font-size: 14px; background-color: var(--bg-color); color: var(--text-color); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4, h5 { white-space: pre-wrap; }
+body { margin: 0px; padding: 0px; height: auto; inset: 0px; font-size: 1rem; line-height: 1.42857; overflow-x: hidden; background: inherit; }
+iframe { margin: auto; }
+a.url { word-break: break-all; }
+a:active, a:hover { outline: 0px; }
+.in-text-selection, ::selection { text-shadow: none; background: var(--select-text-bg-color); color: var(--select-text-font-color); }
+#write { margin: 0px auto; height: auto; width: inherit; word-break: normal; overflow-wrap: break-word; position: relative; white-space: normal; overflow-x: visible; padding-top: 36px; }
+#write.first-line-indent p { text-indent: 2em; }
+#write.first-line-indent li p, #write.first-line-indent p * { text-indent: 0px; }
+#write.first-line-indent li { margin-left: 2em; }
+.for-image #write { padding-left: 8px; padding-right: 8px; }
+body.typora-export { padding-left: 30px; padding-right: 30px; }
+.typora-export .footnote-line, .typora-export li, .typora-export p { white-space: pre-wrap; }
+.typora-export .task-list-item input { pointer-events: none; }
+@media screen and (max-width: 500px) {
+  body.typora-export { padding-left: 0px; padding-right: 0px; }
+  #write { padding-left: 20px; padding-right: 20px; }
+}
+#write li > figure:last-child { margin-bottom: 0.5rem; }
+#write ol, #write ul { position: relative; }
+img { max-width: 100%; vertical-align: middle; image-orientation: from-image; }
+button, input, select, textarea { color: inherit; font: inherit; }
+input[type="checkbox"], input[type="radio"] { line-height: normal; padding: 0px; }
+*, ::after, ::before { box-sizing: border-box; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p, #write pre { width: inherit; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p { position: relative; }
+p { line-height: inherit; }
+h1, h2, h3, h4, h5, h6 { break-after: avoid-page; break-inside: avoid; orphans: 4; }
+p { orphans: 4; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.6rem; }
+h4 { font-size: 1.4rem; }
+h5 { font-size: 1.2rem; }
+h6 { font-size: 1rem; }
+.md-math-block, .md-rawblock, h1, h2, h3, h4, h5, h6, p { margin-top: 1rem; margin-bottom: 1rem; }
+.hidden { display: none; }
+.md-blockmeta { color: rgb(204, 204, 204); font-weight: 700; font-style: italic; }
+a { cursor: pointer; }
+sup.md-footnote { padding: 2px 4px; background-color: rgba(238, 238, 238, 0.7); color: rgb(85, 85, 85); border-radius: 4px; cursor: pointer; }
+sup.md-footnote a, sup.md-footnote a:hover { color: inherit; text-transform: inherit; text-decoration: inherit; }
+#write input[type="checkbox"] { cursor: pointer; width: inherit; height: inherit; }
+figure { overflow-x: auto; margin: 1.2em 0px; max-width: calc(100% + 16px); padding: 0px; }
+figure > table { margin: 0px; }
+thead, tr { break-inside: avoid; break-after: auto; }
+thead { display: table-header-group; }
+table { border-collapse: collapse; border-spacing: 0px; width: 100%; overflow: auto; break-inside: auto; text-align: left; }
+table.md-table td { min-width: 32px; }
+.CodeMirror-gutters { border-right: 0px; background-color: inherit; }
+.CodeMirror-linenumber { user-select: none; }
+.CodeMirror { text-align: left; }
+.CodeMirror-placeholder { opacity: 0.3; }
+.CodeMirror pre { padding: 0px 4px; }
+.CodeMirror-lines { padding: 0px; }
+div.hr:focus { cursor: none; }
+#write pre { white-space: pre-wrap; }
+#write.fences-no-line-wrapping pre { white-space: pre; }
+#write pre.ty-contain-cm { white-space: normal; }
+.CodeMirror-gutters { margin-right: 4px; }
+.md-fences { font-size: 0.9rem; display: block; break-inside: avoid; text-align: left; overflow: visible; white-space: pre; background: inherit; position: relative !important; }
+.md-fences-adv-panel { width: 100%; margin-top: 10px; text-align: center; padding-top: 0px; padding-bottom: 8px; overflow-x: auto; }
+#write .md-fences.mock-cm { white-space: pre-wrap; }
+.md-fences.md-fences-with-lineno { padding-left: 0px; }
+#write.fences-no-line-wrapping .md-fences.mock-cm { white-space: pre; overflow-x: auto; }
+.md-fences.mock-cm.md-fences-with-lineno { padding-left: 8px; }
+.CodeMirror-line, twitterwidget { break-inside: avoid; }
+svg { break-inside: avoid; }
+.footnotes { opacity: 0.8; font-size: 0.9rem; margin-top: 1em; margin-bottom: 1em; }
+.footnotes + .footnotes { margin-top: 0px; }
+.md-reset { margin: 0px; padding: 0px; border: 0px; outline: 0px; vertical-align: top; background: 0px 0px; text-decoration: none; text-shadow: none; float: none; position: static; width: auto; height: auto; white-space: nowrap; cursor: inherit; -webkit-tap-highlight-color: transparent; line-height: normal; font-weight: 400; text-align: left; box-sizing: content-box; direction: ltr; }
+li div { padding-top: 0px; }
+blockquote { margin: 1rem 0px; }
+li .mathjax-block, li p { margin: 0.5rem 0px; }
+li blockquote { margin: 1rem 0px; }
+li { margin: 0px; position: relative; }
+blockquote > :last-child { margin-bottom: 0px; }
+blockquote > :first-child, li > :first-child { margin-top: 0px; }
+.footnotes-area { color: rgb(136, 136, 136); margin-top: 0.714rem; padding-bottom: 0.143rem; white-space: normal; }
+#write .footnote-line { white-space: pre-wrap; }
+@media print {
+  body, html { border: 1px solid transparent; height: 99%; break-after: avoid; break-before: avoid; font-variant-ligatures: no-common-ligatures; }
+  #write { margin-top: 0px; border-color: transparent !important; padding-top: 0px !important; padding-bottom: 0px !important; }
+  .typora-export * { -webkit-print-color-adjust: exact; }
+  .typora-export #write { break-after: avoid; }
+  .typora-export #write::after { height: 0px; }
+  .is-mac table { break-inside: avoid; }
+  #write > p:nth-child(1) { margin-top: 0px; }
+  .typora-export-show-outline .typora-export-sidebar { display: none; }
+  figure { overflow-x: visible; }
+}
+.footnote-line { margin-top: 0.714em; font-size: 0.7em; }
+a img, img a { cursor: pointer; }
+pre.md-meta-block { font-size: 0.8rem; min-height: 0.8rem; white-space: pre-wrap; background: rgb(204, 204, 204); display: block; overflow-x: hidden; }
+p > .md-image:only-child:not(.md-img-error) img, p > img:only-child { display: block; margin: auto; }
+#write.first-line-indent p > .md-image:only-child:not(.md-img-error) img { left: -2em; position: relative; }
+p > .md-image:only-child { display: inline-block; width: 100%; }
+#write .MathJax_Display { margin: 0.8em 0px 0px; }
+.md-math-block { width: 100%; }
+.md-math-block:not(:empty)::after { display: none; }
+.MathJax_ref { fill: currentcolor; }
+[contenteditable="true"]:active, [contenteditable="true"]:focus, [contenteditable="false"]:active, [contenteditable="false"]:focus { outline: 0px; box-shadow: none; }
+.md-task-list-item { position: relative; list-style-type: none; }
+.task-list-item.md-task-list-item { padding-left: 0px; }
+.md-task-list-item > input { position: absolute; top: 0px; left: 0px; margin-left: -1.2em; margin-top: calc(1em - 10px); border: none; }
+.math { font-size: 1rem; }
+.md-toc { min-height: 3.58rem; position: relative; font-size: 0.9rem; border-radius: 10px; }
+.md-toc-content { position: relative; margin-left: 0px; }
+.md-toc-content::after, .md-toc::after { display: none; }
+.md-toc-item { display: block; color: rgb(65, 131, 196); }
+.md-toc-item a { text-decoration: none; }
+.md-toc-inner:hover { text-decoration: underline; }
+.md-toc-inner { display: inline-block; cursor: pointer; }
+.md-toc-h1 .md-toc-inner { margin-left: 0px; font-weight: 700; }
+.md-toc-h2 .md-toc-inner { margin-left: 2em; }
+.md-toc-h3 .md-toc-inner { margin-left: 4em; }
+.md-toc-h4 .md-toc-inner { margin-left: 6em; }
+.md-toc-h5 .md-toc-inner { margin-left: 8em; }
+.md-toc-h6 .md-toc-inner { margin-left: 10em; }
+@media screen and (max-width: 48em) {
+  .md-toc-h3 .md-toc-inner { margin-left: 3.5em; }
+  .md-toc-h4 .md-toc-inner { margin-left: 5em; }
+  .md-toc-h5 .md-toc-inner { margin-left: 6.5em; }
+  .md-toc-h6 .md-toc-inner { margin-left: 8em; }
+}
+a.md-toc-inner { font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
+.footnote-line a:not(.reversefootnote) { color: inherit; }
+.reversefootnote { font-family: ui-monospace, sans-serif; }
+.md-attr { display: none; }
+.md-fn-count::after { content: "."; }
+code, pre, samp, tt { font-family: var(--monospace); }
+kbd { margin: 0px 0.1em; padding: 0.1em 0.6em; font-size: 0.8em; color: rgb(36, 39, 41); background: rgb(255, 255, 255); border: 1px solid rgb(173, 179, 185); border-radius: 3px; box-shadow: rgba(12, 13, 14, 0.2) 0px 1px 0px, rgb(255, 255, 255) 0px 0px 0px 2px inset; white-space: nowrap; vertical-align: middle; }
+.md-comment { color: rgb(162, 127, 3); opacity: 0.6; font-family: var(--monospace); }
+code { text-align: left; vertical-align: initial; }
+a.md-print-anchor { white-space: pre !important; border-width: initial !important; border-style: none !important; border-color: initial !important; display: inline-block !important; position: absolute !important; width: 1px !important; right: 0px !important; outline: 0px !important; background: 0px 0px !important; text-decoration: initial !important; text-shadow: initial !important; }
+.os-windows.monocolor-emoji .md-emoji { font-family: "Segoe UI Symbol", sans-serif; }
+.md-diagram-panel > svg { max-width: 100%; }
+[lang="flow"] svg, [lang="mermaid"] svg { max-width: 100%; height: auto; }
+[lang="mermaid"] .node text { font-size: 1rem; }
+table tr th { border-bottom: 0px; }
+video { max-width: 100%; display: block; margin: 0px auto; }
+iframe { max-width: 100%; width: 100%; border: none; }
+.highlight td, .highlight tr { border: 0px; }
+mark { background: rgb(255, 255, 0); color: rgb(0, 0, 0); }
+.md-html-inline .md-plain, .md-html-inline strong, mark .md-inline-math, mark strong { color: inherit; }
+.md-expand mark .md-meta { opacity: 0.3 !important; }
+mark .md-meta { color: rgb(0, 0, 0); }
+@media print {
+  .typora-export h1, .typora-export h2, .typora-export h3, .typora-export h4, .typora-export h5, .typora-export h6 { break-inside: avoid; }
+}
+.md-diagram-panel .messageText { stroke: none !important; }
+.md-diagram-panel .start-state { fill: var(--node-fill); }
+.md-diagram-panel .edgeLabel rect { opacity: 1 !important; }
+.md-fences.md-fences-math { font-size: 1em; }
+.md-fences-advanced:not(.md-focus) { padding: 0px; white-space: nowrap; border: 0px; }
+.md-fences-advanced:not(.md-focus) { background: inherit; }
+.typora-export-show-outline .typora-export-content { max-width: 1440px; margin: auto; display: flex; flex-direction: row; }
+.typora-export-sidebar { width: 300px; font-size: 0.8rem; margin-top: 80px; margin-right: 18px; }
+.typora-export-show-outline #write { --webkit-flex: 2; flex: 2 1 0%; }
+.typora-export-sidebar .outline-content { position: fixed; top: 0px; max-height: 100%; overflow: hidden auto; padding-bottom: 30px; padding-top: 60px; width: 300px; }
+@media screen and (max-width: 1024px) {
+  .typora-export-sidebar, .typora-export-sidebar .outline-content { width: 240px; }
+}
+@media screen and (max-width: 800px) {
+  .typora-export-sidebar { display: none; }
+}
+.outline-content li, .outline-content ul { margin-left: 0px; margin-right: 0px; padding-left: 0px; padding-right: 0px; list-style: none; overflow-wrap: anywhere; }
+.outline-content ul { margin-top: 0px; margin-bottom: 0px; }
+.outline-content strong { font-weight: 400; }
+.outline-expander { width: 1rem; height: 1.42857rem; position: relative; display: table-cell; vertical-align: middle; cursor: pointer; padding-left: 4px; }
+.outline-expander::before { content: ""; position: relative; font-family: Ionicons; display: inline-block; font-size: 8px; vertical-align: middle; }
+.outline-item { padding-top: 3px; padding-bottom: 3px; cursor: pointer; }
+.outline-expander:hover::before { content: ""; }
+.outline-h1 > .outline-item { padding-left: 0px; }
+.outline-h2 > .outline-item { padding-left: 1em; }
+.outline-h3 > .outline-item { padding-left: 2em; }
+.outline-h4 > .outline-item { padding-left: 3em; }
+.outline-h5 > .outline-item { padding-left: 4em; }
+.outline-h6 > .outline-item { padding-left: 5em; }
+.outline-label { cursor: pointer; display: table-cell; vertical-align: middle; text-decoration: none; color: inherit; }
+.outline-label:hover { text-decoration: underline; }
+.outline-item:hover { border-color: rgb(245, 245, 245); background-color: var(--item-hover-bg-color); }
+.outline-item:hover { margin-left: -28px; margin-right: -28px; border-left: 28px solid transparent; border-right: 28px solid transparent; }
+.outline-item-single .outline-expander::before, .outline-item-single .outline-expander:hover::before { display: none; }
+.outline-item-open > .outline-item > .outline-expander::before { content: ""; }
+.outline-children { display: none; }
+.info-panel-tab-wrapper { display: none; }
+.outline-item-open > .outline-children { display: block; }
+.typora-export .outline-item { padding-top: 1px; padding-bottom: 1px; }
+.typora-export .outline-item:hover { margin-right: -8px; border-right: 8px solid transparent; }
+.typora-export .outline-expander::before { content: "+"; font-family: inherit; top: -1px; }
+.typora-export .outline-expander:hover::before, .typora-export .outline-item-open > .outline-item > .outline-expander::before { content: "−"; }
+.typora-export-collapse-outline .outline-children { display: none; }
+.typora-export-collapse-outline .outline-item-open > .outline-children, .typora-export-no-collapse-outline .outline-children { display: block; }
+.typora-export-no-collapse-outline .outline-expander::before { content: "" !important; }
+.typora-export-show-outline .outline-item-active > .outline-item .outline-label { font-weight: 700; }
+.md-inline-math-container mjx-container { zoom: 0.95; }
+mjx-container { break-inside: avoid; }
+.md-alert.md-alert-note { border-left-color: rgb(9, 105, 218); }
+.md-alert.md-alert-important { border-left-color: rgb(130, 80, 223); }
+.md-alert.md-alert-warning { border-left-color: rgb(154, 103, 0); }
+.md-alert.md-alert-tip { border-left-color: rgb(31, 136, 61); }
+.md-alert.md-alert-caution { border-left-color: rgb(207, 34, 46); }
+.md-alert { padding: 0px 1em; margin-bottom: 16px; color: inherit; border-left: 0.25em solid rgb(0, 0, 0); }
+.md-alert-text-note { color: rgb(9, 105, 218); }
+.md-alert-text-important { color: rgb(130, 80, 223); }
+.md-alert-text-warning { color: rgb(154, 103, 0); }
+.md-alert-text-tip { color: rgb(31, 136, 61); }
+.md-alert-text-caution { color: rgb(207, 34, 46); }
+.md-alert-text { font-size: 0.9rem; font-weight: 700; }
+.md-alert-text svg { fill: currentcolor; position: relative; top: 0.125em; margin-right: 1ch; overflow: visible; }
+.md-alert-text-container::after { content: attr(data-text); text-transform: capitalize; pointer-events: none; margin-right: 1ch; }
+
+
+:root {
+    --side-bar-bg-color: #fafafa;
+    --control-text-color: #777;
+}
+
+@include-when-export url(https://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext);
+
+/* open-sans-regular - latin-ext_latin */
+  /* open-sans-italic - latin-ext_latin */
+    /* open-sans-700 - latin-ext_latin */
+    /* open-sans-700italic - latin-ext_latin */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: "Open Sans","Clear Sans", "Helvetica Neue", Helvetica, Arial, 'Segoe UI Emoji', sans-serif;
+    color: rgb(51, 51, 51);
+    line-height: 1.6;
+}
+
+#write {
+    max-width: 860px;
+  	margin: 0 auto;
+  	padding: 30px;
+    padding-bottom: 100px;
+}
+
+@media only screen and (min-width: 1400px) {
+	#write {
+		max-width: 1024px;
+	}
+}
+
+@media only screen and (min-width: 1800px) {
+	#write {
+		max-width: 1200px;
+	}
+}
+
+#write > ul:first-child,
+#write > ol:first-child{
+    margin-top: 30px;
+}
+
+a {
+    color: #4183C4;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    position: relative;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    line-height: 1.4;
+    cursor: text;
+}
+h1:hover a.anchor,
+h2:hover a.anchor,
+h3:hover a.anchor,
+h4:hover a.anchor,
+h5:hover a.anchor,
+h6:hover a.anchor {
+    text-decoration: none;
+}
+h1 tt,
+h1 code {
+    font-size: inherit;
+}
+h2 tt,
+h2 code {
+    font-size: inherit;
+}
+h3 tt,
+h3 code {
+    font-size: inherit;
+}
+h4 tt,
+h4 code {
+    font-size: inherit;
+}
+h5 tt,
+h5 code {
+    font-size: inherit;
+}
+h6 tt,
+h6 code {
+    font-size: inherit;
+}
+h1 {
+    font-size: 2.25em;
+    line-height: 1.2;
+    border-bottom: 1px solid #eee;
+}
+h2 {
+    font-size: 1.75em;
+    line-height: 1.225;
+    border-bottom: 1px solid #eee;
+}
+
+/*@media print {
+    .typora-export h1,
+    .typora-export h2 {
+        border-bottom: none;
+        padding-bottom: initial;
+    }
+
+    .typora-export h1::after,
+    .typora-export h2::after {
+        content: "";
+        display: block;
+        height: 100px;
+        margin-top: -96px;
+        border-top: 1px solid #eee;
+    }
+}*/
+
+h3 {
+    font-size: 1.5em;
+    line-height: 1.43;
+}
+h4 {
+    font-size: 1.25em;
+}
+h5 {
+    font-size: 1em;
+}
+h6 {
+   font-size: 1em;
+    color: #777;
+}
+p,
+blockquote,
+ul,
+ol,
+dl,
+table{
+    margin: 0.8em 0;
+}
+li>ol,
+li>ul {
+    margin: 0 0;
+}
+hr {
+    height: 2px;
+    padding: 0;
+    margin: 16px 0;
+    background-color: #e7e7e7;
+    border: 0 none;
+    overflow: hidden;
+    box-sizing: content-box;
+}
+
+li p.first {
+    display: inline-block;
+}
+ul,
+ol {
+    padding-left: 30px;
+}
+ul:first-child,
+ol:first-child {
+    margin-top: 0;
+}
+ul:last-child,
+ol:last-child {
+    margin-bottom: 0;
+}
+blockquote {
+    border-left: 4px solid #dfe2e5;
+    padding: 0 15px;
+    color: #777777;
+}
+blockquote blockquote {
+    padding-right: 0;
+}
+table {
+    padding: 0;
+    word-break: initial;
+}
+table tr {
+    border: 1px solid #dfe2e5;
+    margin: 0;
+    padding: 0;
+}
+table tr:nth-child(2n),
+thead {
+    background-color: #f8f8f8;
+}
+table th {
+    font-weight: bold;
+    border: 1px solid #dfe2e5;
+    border-bottom: 0;
+    margin: 0;
+    padding: 6px 13px;
+}
+table td {
+    border: 1px solid #dfe2e5;
+    margin: 0;
+    padding: 6px 13px;
+}
+table th:first-child,
+table td:first-child {
+    margin-top: 0;
+}
+table th:last-child,
+table td:last-child {
+    margin-bottom: 0;
+}
+
+.CodeMirror-lines {
+    padding-left: 4px;
+}
+
+.code-tooltip {
+    box-shadow: 0 1px 1px 0 rgba(0,28,36,.3);
+    border-top: 1px solid #eef2f2;
+}
+
+.md-fences,
+code,
+tt {
+    border: 1px solid #e7eaed;
+    background-color: #f8f8f8;
+    border-radius: 3px;
+    padding: 0;
+    padding: 2px 4px 0px 4px;
+    font-size: 0.9em;
+}
+
+code {
+    background-color: #f3f4f4;
+    padding: 0 2px 0 2px;
+}
+
+.md-fences {
+    margin-bottom: 15px;
+    margin-top: 15px;
+    padding-top: 8px;
+    padding-bottom: 6px;
+}
+
+
+.md-task-list-item > input {
+  margin-left: -1.3em;
+}
+
+@media print {
+    html {
+        font-size: 13px;
+    }
+    pre {
+        page-break-inside: avoid;
+        word-wrap: break-word;
+    }
+}
+
+.md-fences {
+	background-color: #f8f8f8;
+}
+#write pre.md-meta-block {
+	padding: 1rem;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f7f7f7;
+    border: 0;
+    border-radius: 3px;
+    color: #777777;
+    margin-top: 0 !important;
+}
+
+.mathjax-block>.code-tooltip {
+	bottom: .375rem;
+}
+
+.md-mathjax-midline {
+    background: #fafafa;
+}
+
+#write>h3.md-focus:before{
+	left: -1.5625rem;
+	top: .375rem;
+}
+#write>h4.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+#write>h5.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+#write>h6.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+.md-image>.md-meta {
+    /*border: 1px solid #ddd;*/
+    border-radius: 3px;
+    padding: 2px 0px 0px 4px;
+    font-size: 0.9em;
+    color: inherit;
+}
+
+.md-tag {
+    color: #a7a7a7;
+    opacity: 1;
+}
+
+.md-toc { 
+    margin-top:20px;
+    padding-bottom:20px;
+}
+
+.sidebar-tabs {
+    border-bottom: none;
+}
+
+#typora-quick-open {
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+}
+
+#typora-quick-open-item {
+    background-color: #FAFAFA;
+    border-color: #FEFEFE #e5e5e5 #e5e5e5 #eee;
+    border-style: solid;
+    border-width: 1px;
+}
+
+/** focus mode */
+.on-focus-mode blockquote {
+    border-left-color: rgba(85, 85, 85, 0.12);
+}
+
+header, .context-menu, .megamenu-content, footer{
+    font-family: "Segoe UI", "Arial", sans-serif;
+}
+
+.file-node-content:hover .file-node-icon,
+.file-node-content:hover .file-node-open-state{
+    visibility: visible;
+}
+
+.mac-seamless-mode #typora-sidebar {
+    background-color: #fafafa;
+    background-color: var(--side-bar-bg-color);
+}
+
+.mac-os #write{
+    caret-color: AccentColor;
+}
+
+.md-lang {
+    color: #b4654d;
+}
+
+/*.html-for-mac {
+    --item-hover-bg-color: #E6F0FE;
+}*/
+
+#md-notification .btn {
+    border: 0;
+}
+
+.dropdown-menu .divider {
+    border-color: #e5e5e5;
+    opacity: 0.4;
+}
+
+.ty-preferences .window-content {
+    background-color: #fafafa;
+}
+
+.ty-preferences .nav-group-item.active {
+    color: white;
+    background: #999;
+}
+
+.menu-item-container a.menu-style-btn {
+    background-color: #f5f8fa;
+    background-image: linear-gradient( 180deg , hsla(0, 0%, 100%, 0.8), hsla(0, 0%, 100%, 0)); 
+}
+
+
+
+</style><title>配置项</title>
+</head>
+<body class='typora-export os-windows'><div class='typora-export-content'>
+<div id='write'  class=''><h1 id='配置说明'><span>配置说明</span></h1><h3 id='节点启动前需要的配置'><span>节点启动前需要的配置：</span></h3><p><code>genesis.json</code><span>  创世配置，决定链的初始状态</span></p><p><code>config.toml</code><span>  Tendermint 层配置（网络 + 共识），控制共识层和网络通信</span></p><p><code>app.toml</code><span>  应用层配置</span></p><p>&nbsp;</p><h3 id='一genesisjson'><span>一、</span><code>genesis.json</code></h3><p><code>genesis.json</code><span> 定义了区块链网络启动时的所有状态。</span>
+<span> 所有节点必须使用</span><strong><span>完全一致</span></strong><span>的 genesis 文件，否则无法共识。</span></p><h3 id='关键字段说明'><span>关键字段说明：</span></h3><figure class='table-figure'><table><thead><tr><th><span>字段</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>chain_id</code></td><td><span>网络标识符，例如主网为 </span><code>evmos_9001-2</code><span>，用于防止不同网络间混淆。</span></td></tr><tr><td><code>genesis_time</code></td><td><span>创世块的时间戳，决定网络启动时间。</span></td></tr><tr><td><code>validators</code></td><td><span>初始验证人列表，每个验证人包含公钥、公有地址和权重（投票权重）。</span></td></tr><tr><td><code>app_state</code></td><td><span>定义链上模块的初始状态（账户余额、staking、治理、EVM 配置等）。</span></td></tr><tr><td><code>app_state.auth.accounts</code></td><td><span>创世账户及其初始余额。</span></td></tr><tr><td><code>app_state.bank.balances</code></td><td><span>每个账户的代币持有量。</span></td></tr><tr><td><code>app_state.staking.params</code></td><td><span>Staking 模块参数，如最小质押量、解绑周期。</span></td></tr><tr><td><code>app_state.gov.voting_params</code></td><td><span>治理模块参数，如投票期长度。</span></td></tr><tr><td><code>app_state.evm.params.chain_config</code></td><td><span>EVM 兼容配置，例如启用的以太坊改进提案（EIP）。</span></td></tr><tr><td><code>consensus_params</code></td><td><span>共识规则，如每个区块的最大 gas、最大交易数。</span></td></tr></tbody></table></figure><p>&nbsp;</p><h3 id='二configtoml'><span>二、</span><code>config.toml</code></h3><p><span>主要控制节点如何参与网络、共识与日志。</span></p><h3 id='核心配置项'><span>核心配置项：</span></h3><h4 id='p2p网络连接'><span>P2P网络连接</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>moniker</code></td><td><code>&quot;my-node&quot;</code></td><td><span>节点名称，会在 P2P 网络中显示。</span></td></tr><tr><td><code>seeds</code></td><td><code>&quot;node1.evmos.org:26656,node2.evmos.org:26656&quot;</code></td><td><span>初始种子节点地址列表，用于节点发现。</span></td></tr><tr><td><code>persistent_peers</code></td><td><code>&quot;id@ip:26656&quot;</code></td><td><span>永久连接的节点，保证长期通信。</span></td></tr><tr><td><code>external_address</code></td><td><code>&quot;tcp://203.0.113.12:26656&quot;</code></td><td><span>节点公网地址，用于让其他节点连接你。</span></td></tr><tr><td><code>pex</code></td><td><code>true</code></td><td><span>是否启用节点发现（Peer Exchange）。</span></td></tr></tbody></table></figure><h4 id='rpc--api--prometheus'><span>RPC / API / Prometheus</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>laddr</code></td><td><code>&quot;tcp://0.0.0.0:26657&quot;</code></td><td><span>P2P网络的RPC监听地址。</span></td></tr><tr><td><code>rpc.cors_allowed_origins</code></td><td><code>[&quot;*&quot;]</code></td><td><span>允许跨域请求的来源。</span></td></tr><tr><td><code>instrumentation.prometheus</code></td><td><code>true</code></td><td><span>开启 Prometheus 指标采集。</span></td></tr></tbody></table></figure><h4 id='共识与区块'><span>共识与区块</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>timeout_commit</code></td><td><code>&quot;5s&quot;</code></td><td><span>共识提交的超时时间，影响出块时间。</span></td></tr><tr><td><code>skip_timeout_commit</code></td><td><code>false</code></td><td><span>是否跳过共识等待（通常不建议）。</span></td></tr><tr><td><code>create_empty_blocks</code></td><td><code>true</code></td><td><span>是否在无交易时出空块。</span></td></tr></tbody></table></figure><p>&nbsp;</p><h3 id='三apptoml-----应用层配置'><span>三、</span><code>app.toml</code><span> — 应用层配置</span></h3><p><span>主要定义 RPC、REST、EVM、治理、gas、快照等应用层参数。</span></p><h3 id='核心配置项-2'><span>核心配置项：</span></h3><h4 id='服务接口'><span>服务接口</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>api.enable</code></td><td><code>true</code></td><td><span>启用 REST API。</span></td></tr><tr><td><code>api.address</code></td><td><code>&quot;tcp://0.0.0.0:1317&quot;</code></td><td><span>REST API 监听地址。</span></td></tr><tr><td><code>grpc.enable</code></td><td><code>true</code></td><td><span>启用 gRPC 服务。</span></td></tr><tr><td><code>grpc.address</code></td><td><code>&quot;0.0.0.0:9090&quot;</code></td><td><span>gRPC 监听端口。</span></td></tr></tbody></table></figure><h4 id='evm--json-rpc'><span>EVM / JSON-RPC</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>json-rpc.enable</code></td><td><code>true</code></td><td><span>启用以太坊兼容的 JSON-RPC 服务。</span></td></tr><tr><td><code>json-rpc.address</code></td><td><code>&quot;0.0.0.0:8545&quot;</code></td><td><span>JSON-RPC 监听地址。</span></td></tr><tr><td><code>json-rpc.api</code></td><td><code>[&quot;eth&quot;,&quot;net&quot;,&quot;web3&quot;,&quot;txpool&quot;]</code></td><td><span>启用的 JSON-RPC 模块列表。</span></td></tr><tr><td><code>evm.tracer</code></td><td><code>&quot;json&quot;</code></td><td><span>交易调试输出格式。</span></td></tr></tbody></table></figure><h4 id='gas-与经济模型'><span>Gas 与经济模型</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>minimum-gas-prices</code></td><td><code>&quot;0.025aevmos&quot;</code></td><td><span>节点接受交易的最低 gas 价格。</span></td></tr><tr><td><code>index-events</code></td><td><code>[&quot;tx.hash&quot;, &quot;message.action&quot;]</code></td><td><span>事件索引字段，用于查询。</span></td></tr></tbody></table></figure><h4 id='状态同步--快照'><span>状态同步 / 快照</span></h4><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>示例</span></th><th><span>说明</span></th></tr></thead><tbody><tr><td><code>state-sync.snapshot-interval</code></td><td><code>1000</code></td><td><span>每隔多少区块生成一次快照。</span></td></tr><tr><td><code>state-sync.snapshot-keep-recent</code></td><td><code>2</code></td><td><span>保留的快照数量。</span></td></tr></tbody></table></figure><p>&nbsp;</p><p>&nbsp;</p><h3 id='节点运行后的配置项'><span>节点运行后的配置项：</span></h3><p><span>重启节点生效：节点本地参数，不影响共识的配置项</span></p><p><span>治理投票：链上治理（Governance）机制 能够修改的参数化模块配置项</span></p><p><span>硬分叉：涉及 </span><strong><span>共识兼容性</span></strong><span>，需要共识分叉修改</span></p><p>&nbsp;</p><h3 id='重启修改'><span>重启修改</span></h3><h3 id='genesisjson创世配置）不可修改'><code>genesis.json</code><span>（创世配置）不可修改</span></h3><p><span>该文件在链启动后几乎</span><strong><span>禁止自行修改</span></strong><span>。因为它定义了共识初始状态，自行修改会破坏共识。</span></p><p>&nbsp;</p><h3 id='configtomltendermint-层配置）可修改重启后生效）的常见参数'><code>config.toml</code><span>（Tendermint 层配置）可修改（重启后生效）的常见参数：</span></h3><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>说明</span></th><th><span>修改影响</span></th></tr></thead><tbody><tr><td><code>moniker</code></td><td><span>节点名称（显示在 P2P 网络中）</span></td><td><span>无共识影响，可自由改。</span></td></tr><tr><td><code>log_level</code></td><td><span>日志级别 (</span><code>info</code><span>, </span><code>debug</code><span>, </span><code>error</code><span>)</span></td><td><span>可调节日志详细度。</span></td></tr><tr><td><code>laddr</code></td><td><span>RPC 服务地址</span></td><td><span>仅本地接口变动，需重启。</span></td></tr><tr><td><code>external_address</code></td><td><span>公网 P2P 地址</span></td><td><span>修改后节点将以新地址广播。</span></td></tr><tr><td><code>seeds</code><span> / </span><code>persistent_peers</code></td><td><span>连接的节点列表</span></td><td><span>修改后重启生效，用于更换对等节点。</span></td></tr><tr><td><code>pex</code></td><td><span>启用/禁用节点发现</span></td><td><span>可更改网络行为。</span></td></tr><tr><td><code>instrumentation.prometheus</code></td><td><span>开启/关闭监控接口</span></td><td><span>重启后生效。</span></td></tr></tbody></table></figure><p>&nbsp;</p><h3 id='apptoml应用层配置）可修改重启后生效）的参数'><code>app.toml</code><span>（应用层配置）可修改（重启后生效）的参数：</span></h3><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>说明</span></th><th><span>修改影响</span></th></tr></thead><tbody><tr><td><code>api.enable</code><span> / </span><code>grpc.enable</code></td><td><span>启用 REST / gRPC</span></td><td><span>控制接口是否开放。</span></td></tr><tr><td><code>api.address</code><span>, </span><code>grpc.address</code></td><td><span>修改监听端口或 IP</span></td><td><span>影响 API 访问。</span></td></tr><tr><td><code>json-rpc.enable</code><span>, </span><code>json-rpc.address</code></td><td><span>启用 EVM JSON-RPC</span></td><td><span>用于以太坊兼容服务。</span></td></tr><tr><td><code>json-rpc.api</code></td><td><span>控制暴露的 RPC 模块</span></td><td><span>可节省资源或增强安全性。</span></td></tr><tr><td><code>minimum-gas-prices</code></td><td><span>节点接受交易的最低 Gas 价</span></td><td><span>动态调整经济门槛。</span></td></tr><tr><td><code>telemetry.enabled</code></td><td><span>启用监控</span></td><td><span>重启后生效。</span></td></tr><tr><td><code>state-sync.snapshot-interval</code></td><td><span>快照生成频率</span></td><td><span>用于状态同步优化。</span></td></tr></tbody></table></figure><p>&nbsp;</p><h3 id='治理修改'><span>治理修改</span></h3><p><strong><span>质押与验证人</span></strong></p><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>作用</span></th></tr></thead><tbody><tr><td><code>unbonding_time</code></td><td><span>解除质押锁定期</span></td></tr><tr><td><code>max_validators</code></td><td><span>最大验证人数量</span></td></tr><tr><td><code>max_entries</code></td><td><span>每个验证人最大解质押条目数</span></td></tr><tr><td><code>min_commission_rate</code></td><td><span>最低佣金比率</span></td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></tbody></table></figure><p><strong><span>惩罚机制</span></strong></p><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>作用</span></th></tr></thead><tbody><tr><td><code>signed_blocks_window</code></td><td><span>掉线惩罚评估周期</span></td></tr><tr><td><code>min_signed_per_window</code></td><td><span>掉线容忍率</span></td></tr><tr><td><code>downtime_jail_duration</code></td><td><span>监禁期</span></td></tr></tbody></table></figure><p><strong><span>治理自身规则</span></strong></p><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>作用</span></th></tr></thead><tbody><tr><td><code>voting_period</code></td><td><span>投票期长度</span></td></tr><tr><td><code>min_deposit</code></td><td><span>提案最小抵押</span></td></tr><tr><td><code>quorum</code></td><td><span>投票最低参与率</span></td></tr><tr><td><code>threshold</code></td><td><span>通过提案的票数比例</span></td></tr><tr><td><code>veto_threshold</code></td><td><span>否决比例</span></td></tr></tbody></table></figure><p><strong><span>通胀模型</span></strong></p><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>作用</span></th></tr></thead><tbody><tr><td><code>inflation_rate_change</code></td><td><span>通胀率变化速度</span></td></tr><tr><td><code>inflation_max</code></td><td><span>通胀率上限</span></td></tr><tr><td><code>inflation_min</code></td><td><span>通胀率下限</span></td></tr><tr><td><code>goal_bonded</code></td><td><span>目标质押率</span></td></tr></tbody></table></figure><p><strong><span>奖励分配</span></strong></p><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>作用</span></th></tr></thead><tbody><tr><td><code>base_proposer_reward</code></td><td><span>基础提议奖励</span></td></tr><tr><td><code>bonus_proposer_reward</code></td><td><span>额外奖励</span></td></tr><tr><td><code>withdraw_addr_enabled</code></td><td><span>是否允许更改奖励提取地址</span></td></tr></tbody></table></figure><p>&nbsp;</p><h3 id='硬分叉'><span>硬分叉</span></h3><figure class='table-figure'><table><thead><tr><th><span>参数</span></th><th><span>修改效果</span></th></tr></thead><tbody><tr><td><code>chain_id</code></td><td><span>改变网络 ID</span></td></tr><tr><td><code>genesis_time</code></td><td><span>重新定义创世时间</span></td></tr><tr><td><code>version.consensus</code></td><td><span>升级共识协议</span></td></tr><tr><td><code>pub_key_types</code></td><td><span>更改签名算法</span></td></tr><tr><td><code>time_iota_ms</code></td><td><span>调整出块最小间隔</span></td></tr><tr><td><code>chain_config</code><span>（EIPs）</span></td><td><span>启用新的以太坊升级（如 London, Shanghai）</span></td></tr><tr><td><span>模块启用/禁用</span></td><td><span>启用动态费市场</span></td></tr><tr><td><span>模块新增 / 删除</span></td><td><span>改变 SDK 模块结构</span></td></tr><tr><td><span>交易签名验证逻辑</span></td><td><span>改动编码规则</span></td></tr><tr><td><span>store key / db 结构</span></td><td><span>改变状态树结构</span></td></tr></tbody></table></figure></div></div>
+</body>
+</html>
