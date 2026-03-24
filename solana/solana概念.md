@@ -1,5 +1,145 @@
 # Solana核心概念
 
+# 网络
+
+# 共识
+
+https://learnblockchain.cn/article/10458
+
+ Solana 中，共识机制并不是单一算法，而是 **多个机制组合**形成的高性能共识体系。核心由三部分组成：
+
+```
+Proof of History (PoH) + Tower BFT + Proof of Stake (PoS)
+```
+
+简单理解：
+
+```
+PoH   = 提供可验证时间
+PoS   = 决定谁参与共识
+Tower BFT = 达成最终共识
+```
+
+
+
+共识算法遵循两阶段：1. **选出验证者**出块 2. 其他验证者对块进行投票，积累了足够多投票之后，区块被最终确认。
+
+### 选出验证者
+
+在 Solana 的协议中，有两个重要时间间隔相关的词：**Epoch** 与 **时隙（slot）**：
+
+- **时隙（slot）：** 验证者生成区块的时间单位。每个时隙可以生成一个区块，每个时隙持续 400 毫秒。
+- **Epoch：** 在每个Epoch 开始时，Solana 网络会根据质押权重和之前的区块随机选举出一个验证者（称为领导者Leader）序列 ， 这个领导者序列负责在该Epoch 内出块，领导者序列在此期间保持固定，每个领导者可以处理 **4 个 Slot**（即出 4 个块)，每个Epoch大约持续两天（包含 432,000 个 Slot）。直到下一个Epoch 重新产生领导者 Leader。
+
+
+
+### 出块
+
+Solana 为了实现高性能，引入了并行处理交易， 把交易的排序和执行分成了两个阶段，这样执行阶段就可以并行处理了。
+
+其他验证者在验证交易时，也是按照同样的排序序列来执行验证，为了让交易排序序列可以被验证， Solana 使用 POH 历史证明哈希链的方式来确定交易的顺序。
+
+
+
+PoH 通过创建一系列加密哈希（SHA256 算法），每次哈希计算都需要使用前一个哈希值，这样就可以确保下一个哈希总是在上一个哈希之后发生，因此 POH 哈希链结合交易数据就可以确定交易次序。
+
+![img](https://img.learnblockchain.cn/attachments/migrate/1736299460431)
+
+只需要在计算哈希时，加入交易数据作为输入的一部分，就可以确定交易的序列。而且这个序列是可并行可验证和不可篡改的。
+
+验证者通过点对点通信相互转发新交易，这被称为 gossip，当前的**领导验证者**会不停从 RPC服务器和其他的验证者那里接收交易，做了初步的验证（如验证交易签名和账户余额）之后，就会加入的 POH 哈希链的计算当中排序，即给每笔交易打上一个全局、可验证的时间顺序标签，然后再对交易进行并行执行。
+
+在 Solana 中，整个**交易处理流程**被拆分成多个相互衔接的阶段（交易验证阶段、POH 排序阶段、执行阶段、广播阶段），形成一个**流水线（pipeline）**。不同阶段之间可以并行、重叠地处理不同批次的交易，就不同 CPU 核或 GPU 在同时处理某一批交易的验证核另一批交易的执行（称为banking）。
+
+# 流水线（pipeline）
+
+```
+PoH 生成（时间推进）
+        ↓
+交易不断插入
+        ↓
+边生成边执行
+        ↓
+边执行边广播 entry = {
+  poh_hash,
+  transactions,
+  execution_results
+} 广播是分片的（Turbine）：不是等整个 block而是一边生成一边传播
+```
+
+## Validator 同步执行
+
+其他节点：
+
+- 收到 entry
+- 验证 PoH
+- 重放交易执行
+- 校验结果
+
+
+
+交易的执行也是并行的，交易执行基于**账户的读写依赖**来安排并行度，将交易按照依赖分组，并行的放进不同线程/CPU 核心/GPU 任务中执行。
+
+> 若两笔交易操作的账户完全不同或都是只读，理论上可以同时执行；如果存在写冲突，则必须按顺序执行，避免数据不一致。
+
+现在我们明白了 Solana 出块的过程，这个如上的方式，Solana 在单个 Slot（约 400ms）内能够处理大量交易。
+
+
+
+### POH - 同步时钟
+
+每次哈希计算都需要使用前一个哈希值。这确保了无法进行并行化。由于每次哈希操作都需要最小时间，因此我们可以对哈希生成的时间做出一些保证。
+
+因此PoH 哈希链，可以作为时间流逝的证明。
+
+在 Solana 中，每个区块（的PoH 哈希链）必须包含 12,500 个哈希。当前Slot 的领导者负责生成这些 PoH 链（区块）。
+
+**PoH 的构建基于这样的假设：**没有验证者可以显著快于其他验证者生成 PoH 序列，这受到芯片处理速度的限制。除了当前内置于验证者中的 SHA256 实现外，一些实现的速度是其数倍，这可能会危及安全性。
+
+
+
+## Solana vs Ethereum
+
+```
+时间来源：PoH（计算）
+```
+
+- slot = hash 推进
+
+```
+时间来源：物理时钟（wall clock）
+```
+
+- slot = 时间驱动
+
+
+
+实际上，每个验证者都在后台自己计算着 PoH 链（没有交易数据的空 Hash 链），如果前一个领导者（或多个前领导者）未发布区块（或者当前领导者未收到），只要经过 Slot 要求的哈希数量，当前领导者就可以按时生成区块。
+
+如下图 Slot3 离线，Slot4 的验证者为 slot3 填充 PoH 序列。
+
+![image-20250108110531830](https://img.learnblockchain.cn/pics/20250108110533.png)
+
+
+
+### 验证和投票区块
+
+区块的验证过程包括验证区块元数据和重新计算 PoH 哈希，会验证并重放来自区块的所有交易，并更新账本。
+
+顺序计算哈希（如在 PoH 创建期间）会耗费很多时间。这就是验证者将 PoH 哈希链拆分成几部分的原因。重新计算每一部分可以实现并行化，从而使验证过程比原始的 PoH 创建过程更快。
+
+
+
+验证通过后，通过投票表示验证者对一个区块的承诺，验证者持有的委托权益（币）越多，投票的权重就越大。
+
+通常，验证者会选择**最重**的链出块和投票，如果出现了前一个领导者的区块未能到达当前领导者， 则可能会出现分叉的情况：
+
+![image-20250108120307092](https://img.learnblockchain.cn/pics/20250108120308.png)
+
+在分叉的情况下，验证者会为每个子树计算总的按股份加权投票，并选择投票最多的那个。如果一个区块获得至少三分之二的持权加权投票，则该区块被确认。
+
+
+
 # [账户](https://solana.com/zh/docs/core/accounts)
 
 Solana 网络上的所有数据都存储在账户中。您可以将 Solana 网络视为一个包含单一账户表的公共数据库。账户与其地址之间的关系类似于键值对，其中键是地址，值是账户。
@@ -67,8 +207,6 @@ Solana 网络上的所有数据都存储在账户中。您可以将 Solana 网�
 
 
 
-
-
 ### executable
 
 此字段指示账户是[程序账户](https://solana.com/zh/docs/core/accounts#program-accounts)还是[数据账户](https://solana.com/zh/docs/core/accounts#data-accounts)。
@@ -119,11 +257,13 @@ data = 程序字节码 + 元数据（比如 upgrade authority）
 
 ![一个程序账户及其数据。数据指向一个单独的程序数据账户](https://solana.com/assets/docs/core/accounts/program-account-expanded.svg)
 
-在程序部署或升级期间，缓冲账户用于临时存储上传内容。
+
 
 Buffer Account（缓冲账户）部署/升级时用于暂存程序字节码：
 
 - `owner = BPFLoader`
+
+在程序部署或升级期间，缓冲账户用于临时存储上传内容。
 
 
 
@@ -135,6 +275,8 @@ Buffer Account（缓冲账户）部署/升级时用于暂存程序字节码：
 
 1. 调用 [System Program](https://solana.com/docs/core/programs#the-system-program) 来创建一个账户。（然后 System Program 将所有权转移给新程序。）
 2. 根据其 [instructions](https://solana.com/docs/core/instructions) 初始化账户数据。
+
+
 
 **PDA账户**
 
@@ -221,7 +363,9 @@ Sysvar 账户存在于预定义的地址，并提供对集群状态数据的访�
 
 交易的 `signatures` 数组包含 `Signature` 结构体。每个 [`Signature`](https://github.com/anza-xyz/agave/blob/v2.1.13/sdk/signature/src/lib.rs#L30) 为 64 字节，由账户私钥对交易的 `Message` 签名生成。每个包含在任意交易指令中的 [签名账户](https://solana.com/zh/docs/core/transactions#account-addresses) 都必须提供签名。
 
-第一个签名属于支付交易[基础费用](https://solana.com/zh/docs/core/docs/core/fees#base-fee)的账户，并且是交易签名。交易签名可用于在网络上查找交易的详细信息。
+第一个签名属于支付交易[基础费用](https://solana.com/zh/docs/core/docs/core/fees#base-fee)的账户，并且是交易签名。
+
+交易签名可用于在网络上查找交易的详细信息。
 
 
 
@@ -568,6 +712,31 @@ solana program deploy <program_filepath>
 solana program set-upgrade-authority <program_address> --final
 ```
 
+在 Solana 上：
+
+- 可升级程序（Upgradeable Program）不是只有一个账户
+- 实际上有 **两个关键账户**
+
+### 1️⃣ Program Account（程序地址）
+
+- 就是你平时调用的 programId
+- **只保存一个指针**
+- 指向 ProgramData 账户
+
+------
+
+### 2️⃣ ProgramData Account（关键！）
+
+👉 **upgrade authority 就存在这里**
+
+这个账户里存了：
+
+- 程序的实际字节码（elf）
+- slot（部署/升级时间）
+- **upgrade_authority_address**
+
+
+
 
 
 ### 验证程序
@@ -621,7 +790,7 @@ Loader 程序有时也被称为“BPF Loaders”。
 
 当新程序部署时，默认会使用最新的 loader 版本。
 
-### 
+
 
 ### [预编译程序](https://solana.com/zh/docs/core/programs#预编译程序)
 
@@ -669,8 +838,6 @@ secp256k1 程序用于验证 secp256k1 公钥恢复操作。
 
 # [PDA程序派生地址](https://solana.com/zh/docs/core/pda)
 
-
-
 PDA 是使用程序 ID 和一组可选的预定义输入确定性创建的地址。PDA 看起来与公钥地址类似，但没有对应的私钥。
 
 Solana 运行时允许程序为 PDA 签名而无需私钥。
@@ -704,9 +871,11 @@ Solana SDK 支持使用下表中显示的函数创建 PDA。每个函数接收�
 | `@solana/web3.js` (Typescript) | [`findProgramAddressSync`](https://github.com/solana-foundation/solana-web3.js/blob/v1.98.0/src/publickey.ts#L212) |
 | `solana_sdk` (Rust)            | [`find_program_address`](https://github.com/anza-xyz/solana-sdk/blob/sdk@v2.2.2/pubkey/src/lib.rs#L617) |
 
+
+
 ### [标准 bump](https://solana.com/zh/docs/core/pda#标准-bump)
 
-bump seed 是附加到可选种子后的一个额外字节。派生函数从 255 开始迭代 bump 值，每次递减 1，直到找到一个生成有效非曲线地址的值。第一个生成有效非曲线地址的值被称为“标准 bump”。
+bump seed 是附加到可选种子后的一个额外字节。派生函数从 255 开始迭代 bump 值，每次递减 1，直到找到一个生成有效非曲线地址的值。**第一个生成有效非曲线地址的值被称为“标准 bump”。**
 
 
 
@@ -720,12 +889,10 @@ bump seed 是附加到可选种子后的一个额外字节。派生函数从 255
 
 ###  SPL（[Solana Program Library](https://github.com/solana-program)）代币
 
-
-
 - [Token Program](https://solana.com/zh/docs/tokens#token-program) 包含了在网络上与代币（包括同质化和非同质化）交互的全部指令逻辑。
 - [Mint Account](https://solana.com/zh/docs/tokens#mint-account) 代表某一特定代币，并存储该代币的全局元数据，如总发行量和铸造权限（有权创建新代币单位的地址）。
 - [Token Account](https://solana.com/zh/docs/tokens#token-account) 用于跟踪特定所有者在特定 mint account 下的代币持有情况。由keypair创建
-- [Associated Token Account](https://solana.com/zh/docs/tokens#associated-token-account) 是通过所有者和 mint account 地址进行PDA派生出的一种 Token Account。
+- [Associated Token Account](https://solana.com/zh/docs/tokens#associated-token-account) 是通过所有者地址和 mint account 地址进行PDA派生出的一种 Token Account。
 
 
 
@@ -773,6 +940,8 @@ token account 会存储如下数据：
 - **Amount**：该 token account 当前持有的代币数量
 
 ![Token Account](https://solana.com/assets/docs/core/tokens/token-account.svg)
+
+
 
 #### 普通Token Account的创建过程
 
@@ -845,6 +1014,16 @@ ATA = PDA(
 $$
 seeds = \text{Hash}(\text{Wallet Address} + \text{Token Program ID} + \text{Mint Address})
 $$
+`ASSOCIATED_TOKEN_PROGRAM_ID` 是 Solana 上一个**专门用于创建和管理 ATA（Associated Token Account） 的程序地址**。
+
+这个 Program 的固定地址是：
+
+```
+ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL
+```
+
+
+
 需要注意的是，Associated Token Account 其实就是一个具有特定地址的 token account。
 
 一个钱包只会有一个ATA关联代币账户，这个Associated Token Account 理解为某个 mint 和所有者的“默认” token account。
@@ -868,7 +1047,7 @@ ATA创建流程：
 1️⃣ 客户端调用
  spl-associated-token-account
 
-2️⃣ ATA Program 做三件事：
+2️⃣ ATA Program（ASSOCIATED_TOKEN_PROGRAM_ID） 做三件事：
 
 **① 计算 ATA 地址**
 
@@ -889,8 +1068,7 @@ system_program::create_account
 
 **③ 初始化 Token Account**
 
-调用
- spl-token
+调用 spl-token
 
 ```
 initialize_account
@@ -902,7 +1080,7 @@ initialize_account
 account.owner = TOKEN_PROGRAM_ID
 ```
 
-所以ata账户级别的owner是TOKEN_PROGRAM
+所以ATA账户级别的owner是TOKEN_PROGRAM
 
 
 
@@ -1345,4 +1523,72 @@ pub struct Counter {
 
 ## [带有 PDA 签名者的 CPI](https://solana.com/zh/docs/core/cpi#带有-pda-签名者的-cpi)
 
-当 CPI 需要 PDA 签名者时，会使用 [`invoke_signed`](https://github.com/anza-xyz/agave/blob/v2.1.13/sdk/program/src/program.rs#L51-L73) 函数。该函数接收用于派生签名者 [PDA](https://solana.com/docs/core/pda) 的 signer seeds。Solana 运行时会在内部调用 [`create_program_address`](https://github.com/anza-xyz/agave/blob/v2.1.13/programs/bpf_loader/src/syscalls/cpi.rs#L552) ，并传入 `signers_seeds` 以及调用方程序的 `program_id`。当 PDA 验证通过后， [会被添加为有效签名者](https://github.com/anza-xyz/agave/blob/v2.1.13/programs/bpf_loader/src/syscalls/cpi.rs#L554)。
+当 CPI 需要 PDA 签名者时，会使用 [`invoke_signed`](https://github.com/anza-xyz/agave/blob/v2.1.13/sdk/program/src/program.rs#L51-L73) 函数。
+
+该函数接收用于派生签名者 [PDA](https://solana.com/docs/core/pda) 的 seeds。Solana 运行时会在内部调用 [`create_program_address`](https://github.com/anza-xyz/agave/blob/v2.1.13/programs/bpf_loader/src/syscalls/cpi.rs#L552) ，并传入 `signers_seeds` 以及调用方程序的 `program_id`。当 PDA 验证通过后， [会被添加为有效签名者](https://github.com/anza-xyz/agave/blob/v2.1.13/programs/bpf_loader/src/syscalls/cpi.rs#L554)。
+
+程序调用 invoke_signed
+        ↓
+传入 seeds + bump（调用 `invoke_signed` 不需要你手动传入 program_id，**program_id 是 Runtime 自动使用“当前执行程序”的 ID**）
+        ↓
+Runtime 重新推导 PDA
+        ↓
+校验 PDA 是否正确（所以本质该过程不是签名和验签，而是重新推导出PDA）
+        ↓
+✔ 正确 → 标记 PDA 为 signer
+✘ 错误 → 拒绝执行
+
+​        ↓
+
+Token Program 验签
+
+它只看：
+
+```
+authority.is_signer == true ?
+```
+
+
+
+**对比普通签名**
+
+Ed25519 签名的是：
+
+```
+serialized_message
+```
+
+Transaction
+   └── Message
+
+签名覆盖整个 Message
+
+Token的owner必须签名
+
+
+
+Solana Runtime 会验签：
+
+```
+ed25519_verify(signature, public_key, message)
+```
+
+------
+
+然后：
+
+```
+标记 account.is_signer = true
+```
+
+
+
+然后Token Program 验签
+
+👉 它不会做密码学验签！
+
+它只检查：
+
+```
+authority.is_signer == true ?
+```
