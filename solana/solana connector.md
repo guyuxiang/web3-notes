@@ -62,6 +62,8 @@ DROPPED     -> 被分叉丢弃 / 查询不到 / 过期失效
 REVERTED    -> 之前见过，后续确认失败或被替代
 ```
 
+
+
 ## 3）必须支持“先订阅、后补拉、再对账”
 
 生产事故里最常见的不是“代码不会解析交易”，而是：
@@ -98,6 +100,28 @@ REVERTED    -> 之前见过，后续确认失败或被替代
 - `getSignaturesForAddress`
 
 官方有 `logsSubscribe`、WebSocket 订阅方法以及 `getSignaturesForAddress` 文档。
+
+
+
+## 区块游标持久化
+
+记录已经扫到哪个 block。
+
+例如：
+
+```
+last_scanned_block = 12345678
+last_finalized_block = 12345666
+```
+
+
+
+## 重启续跑
+
+服务重启后，从 `last_scanned_block - safety_margin` 开始补扫。
+
+例如回退 20 个块重新扫。
+ 因为幂等存在，所以多扫没问题，漏扫才危险。
 
 
 
