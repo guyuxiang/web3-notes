@@ -25,7 +25,6 @@ anchor init --template multiple  xxx           // 使用模块化结构
 - `/programs/my-project/src/error.rs`- 自定义错误定义
 
 
-
 anchor的模块分层
 
 | 架构层         | Anchor 角色               |
