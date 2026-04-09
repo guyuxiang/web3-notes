@@ -293,7 +293,7 @@ ESG Tracking and Transparency从链下的环保数据源（如碳排放监控系
 
 Data Streams结合了Automation和Functions的功能，提供了一种新的交易模式-流交易
 
-
+“用户先在链上提交交易意图，随后由 Automation 基于事件去取数/取报告，再把报告和最终执行原子地放进第二笔链上交易里完成。”
 
 流交易架构 - “commit-and-reveal”
 

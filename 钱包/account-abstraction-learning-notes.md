@@ -281,15 +281,40 @@ paymaster validation 可以返回 `(context, validationData)`：
 
 ### 7.1 Nonce 不是单纯的自增 uint256
 
-`NonceManager` 的核心存储是：
+`NonceManager` 的核心存储：
+
+EntryPoint 内部维护：
 
 - `mapping(address => mapping(uint192 => uint256)) nonceSequenceNumber`
+
+含义：
+
+- 第一层 key：`sender`
+- 第二层 key：`key`
+- value：当前 `sequence`
+
+ 所以链上真实存的是：
+
+```
+nonceSequenceNumber[sender][key] = 当前 sequence
+```
 
 也就是说，一个账户不是只有一条 nonce 流，而是：
 
 - 每个 `key` 一条独立的 sequence
 
 ### 7.2 位布局
+
+ERC-4337 定义：
+
+```
+nonce = (key << 64) | sequence
+```
+
+也就是说：
+
+- 高 192 bit → `key`
+- 低 64 bit → `sequence`
 
 `getNonce(sender, key)` 返回：
 
@@ -301,12 +326,41 @@ paymaster validation 可以返回 `(context, validationData)`：
 ### 7.3 是否支持并发
 
 协议层支持并发，因为不同 `key` 可以并行推进。  
-但具体账户是否允许，要看账户自己在 `_validateNonce(...)` 里是否加限制。
+
+#### 执行流程（核心逻辑）
+
+当 bundler 提交一个 UserOp 时：
+
+#### 1️⃣ EntryPoint 拆 nonce
+
+```
+uint192 key = uint192(nonce >> 64);
+uint64 sequence = uint64(nonce);
+```
+
+#### 2️⃣ 校验 sequence
+
+```
+require(sequence == nonceSequenceNumber[sender][key]);
+```
+
+#### 3️⃣ 成功后递增
+
+```
+nonceSequenceNumber[sender][key]++;
+```
+
+👉 这一步保证：
+
+- 同一个 key → 必须严格顺序执行
+- 不同 key → 完全独立
+
+如果账户有特殊需要，可以在账户自己实现 `_validateNonce(...)` 里是否加限制。
 
 所以准确说法是：
 
 - `EntryPoint` nonce 机制支持并发
-- 账户实现可以选择收紧成单通道顺序模式
+- 账户实现可以选择**收紧成单通道顺序模式**
 
 ## 8. StakeManager 重点理解
 
