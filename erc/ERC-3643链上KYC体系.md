@@ -87,6 +87,153 @@ ONCHAINID是一个基于区块链的身份管理系统
 
 
 
+#### OnchainID Solidity 项目详解
+
+https://github.com/onchain-id/solidity
+
+这个仓库是 **OnchainID** 官方提供的 Solidity 实现，用于在区块链上实现**去中心化身份（On-chain Identity）**。它是很多合规型代币标准（例如 **ERC-3643 / T-REX**）的核心基础组件。
+
+> 👉 **把“身份 + KYC + 声明（Claims）”做成链上可验证的智能合约系统**
+
+传统 Web2：
+
+- 身份在中心化数据库（银行 / KYC服务商）
+
+OnchainID：
+
+- 身份是一个**智能合约地址**
+- 所有认证信息是**链上可验证的声明（Claim）**
+
+#### 整体架构
+
+#### 1️⃣ Identity（身份合约）
+
+每个用户 = 一个 Identity 合约（类似智能账户）
+
+核心能力：
+
+- 持有多个 key（权限体系）
+- 接收/存储 claims（认证信息）
+- 支持代理执行（类似 AA）
+
+👉 类似：
+
+- ERC-4337 Smart Account（但更偏身份）
+
+#### 2️⃣ Key Management（密钥体系）
+
+OnchainID 定义了不同用途的 Key：
+
+| Key 类型         | 作用                 |
+| ---------------- | -------------------- |
+| MANAGEMENT_KEY   | 管理权限（最高权限） |
+| ACTION_KEY       | 执行交易             |
+| CLAIM_SIGNER_KEY | 签发 claim           |
+| ENCRYPTION_KEY   | 加密用途             |
+
+👉 一个 Identity 可以：
+
+- 多签控制
+- 热/冷钱包分离
+- 企业级权限结构
+
+#### 3️⃣ Claim（声明体系）
+
+这是整个系统的核心。
+
+#### Claim 是什么？
+
+👉 **“某个机构对你身份的一种证明”**
+
+例如：
+
+- “Binance 证明你通过了 KYC”
+- “政府证明你是美国居民”
+- “银行证明你是合格投资者”
+
+------
+
+#### Claim 数据结构（核心）
+
+```
+struct Claim {
+    uint256 topic;
+    uint256 scheme;
+    address issuer;
+    bytes signature;
+    bytes data;
+    string uri;
+}
+```
+
+解释：
+
+| 字段      | 含义                                        |
+| --------- | ------------------------------------------- |
+| topic     | 声明类型（KYC / AML / Accredited Investor） |
+| issuer    | 谁签发的                                    |
+| signature | 签名                                        |
+| data      | 实际内容                                    |
+| uri       | 链下数据                                    |
+
+#### Claim 工作流程
+
+流程如下：
+
+1. 用户创建 Identity 合约
+2. KYC 机构（Issuer）验证用户
+3. Issuer 用私钥签署 Claim
+4. Claim 存入用户 Identity 合约
+5. 其他合约（如证券 Token）验证 Claim
+
+#### 核心合约模块
+
+#### 1️⃣ Identity.sol
+
+👉 主体合约（最重要）
+
+功能：
+
+- addKey / removeKey
+- addClaim / removeClaim
+- execute（代执行）
+
+------
+
+#### 2️⃣ ClaimIssuer.sol
+
+👉 Claim 签发者
+
+职责：
+
+- 管理签名公钥
+- 提供 `isClaimValid()` 校验接口
+
+#### 一笔合规转账流程：
+
+1. 用户A 发起 transfer
+2. Token 合约调用 IdentityRegistry
+3. IdentityRegistry 获取：
+   - A 的 Identity
+   - B 的 Identity
+4. 调用 Identity：
+   - `getClaim(KYC_TOPIC)`
+5. 调用 ClaimIssuer：
+   - `isClaimValid()`
+6. 校验通过 → 转账成功
+
+#### 隐私问题
+
+- Claim 默认是公开的
+- 不适合敏感数据
+
+👉 通常解决：
+
+- hash + off-chain storage
+- zk（但原项目没做）
+
+
+
 ## 可信发行机构注册表
 
 可信发行机构注册中心 (TIR) 负责管理和验证有权发行权益的实体列表。该注册中心确保只有经过验证且可信的发行机构才能参与身份验证过程，从而增强协议的安全性和可靠性。
@@ -228,6 +375,52 @@ Compliance 管的是“**这笔交易规则上允不允许**”，而不是“�
 **TransferFeesModule**：协议费用对于平台的可持续发展至关重要。该模块允许系统管理员轻松设置费用并指定收款地址。因此，该模块可确保在代币转账过程中，按照指定的费率和收款地址收取费用。
 
 **TransferRestrictModule**：TransferRestrictModule 合约本质上是在系统中创建了一个许可列表功能，使系统管理员能够无缝地管理用户对转账的访问权限。此外，它还通过批量操作提供了灵活性，可以高效地同时管理多个用户地址。
+
+
+
+#### CountryAllowModule合约
+
+ 配置国家是调用 ERC3643CountryAllowModule 合约。
+  具体方法在：                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
+  - contracts/kyc/erc3643/modules/ERC3643CountryAllowModule.sol                                                                                                                                                                                                                                                                                                                                                                                   
+
+  可调用的方法：                                                                                                                                                                                                                                                                                                                                                                                                                                    
+  - allowCountry(address compliance, uint16 country, bool allowed)                                                                                                                                                                  
+  - batchAllowCountries(address compliance, uint16[] countries, bool allowed)                                                                                                                                                                                                                                                                                                                                                                                 
+
+  参数含义：                                                                                                                                                                                                                                                                                                                                                                                                                                         
+  - compliance                                                                                                                                                                                                                      
+      - 传某个 vault 对应的 compliance 地址                                                                                                                                                                                         
+      - 比如 seniorCompliance 或 juniorCompliance                                                                                                                                                                                   
+  - country                                                                                                                                                                                                                         
+      - 国家代码，uint16                                                                                                                                                                                                            
+  - allowed                                                                                                                                                                                                                         
+      - true 表示放开，false 表示移除    
+
+  一个例子：
+
+```solidity
+  countryAllowModule.batchAllowCountries(seniorCompliance, [156, 840], true);
+  countryAllowModule.batchAllowCountries(juniorCompliance, [156], true);
+```
+
+
+
+#### Compliance 如何检查
+
+ERC3643ModularCompliance.canTransfer(...) 会遍历自己挂载的所有 module：                                                                                                                                                                                                                                                                                                                                                                     
+
+  - 逐个调用 module.moduleCheck(from, to, value, compliance)                                                                                                                                                                        
+  - 只要有一个返回 false，本次转账/claim 就不允许                        
+
+ 1. module 收到 moduleCheck(from, to, value, compliance)                                                                                                                                                                           
+  2. 它先根据 compliance 找到这个 compliance 绑定的 IdentityRegistry                                                                                                                                                                
+  3. 再调用：                                                                                                                                                                                                                       
+      - identityRegistry.investorCountry(to)                                                                                                                                                                                        
+  4. 取到目标地址 to 的国家码                                                                                                                                                                                                       
+  5. 最后检查：                                                                                                                                                                                                                     
+      - allowedCountries [compliance] [country]
 
 
 
