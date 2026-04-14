@@ -1,10 +1,16 @@
-# 前端permit2集成方案
+# permit2集成方案
 
 ### 背景
 
 在调用合约 **sendRealisedToken、encash、transfereeAcceptWithFN** 这三个方法时，需要传入token 授权转账的签名结果（r、s、v ）提供给合约进行转账，但本次接入的USDT稳定币合约没有permit方法进行该签名授权转账，因此使用uniswap的permit2方案进行集成，对这三个场景进行改造。
 
+用户只需要：
 
+```
+1. 对 Permit2 合约 approve 一次
+token.approve(permit2, MAX);
+2. 之后所有 DApp 都用签名授权
+```
 
 ### 工作流程
 
@@ -31,6 +37,13 @@ totalAmount = ethers.constants.MaxUint256;
 
 
 2. **获取permit2Nonce**
+
+Permit2 的 nonce：
+
+支持：
+
+- 并发签名
+- 无顺序依赖
 
 调用config合约的Permit2Nonce方法，获取一个nonce，供后续permit2签名使用，这块与之前直接调用token合约的nonce方法获取不同，需改造
 
