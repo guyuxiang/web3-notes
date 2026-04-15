@@ -1592,3 +1592,171 @@ ed25519_verify(signature, public_key, message)
 ```
 authority.is_signer == true ?
 ```
+
+
+
+
+
+## Multisig 账户
+
+**一个由 SPL Token Program 识别的“多签配置账户”**
+
+### Multisig 账户结构：
+
+```
+pub struct Multisig {
+    pub m: u8,               // 最少需要的签名数 (threshold)
+    pub n: u8,               // signer 总数
+    pub is_initialized: bool,
+    pub signers: [Pubkey; 11], // 最多11个 signer
+}
+```
+
+###  m / n 模型
+
+- `n`：最多 11 个 signer
+- `m`：至少需要 m 个 signer 才能执行
+
+👉 典型：
+
+- 2/3
+- 3/5
+- 5/7
+
+ 不是随便限制的，是**交易大小限制导致的**
+
+- Solana 一笔交易最大 size ≈ 1232 bytes
+- 每个 signer 都要：
+  - 占一个 account meta
+  - 占一个 signature slot
+
+👉 所以 SPL Token 限制最多 11 个 signer
+
+### 创建 Multisig + 绑定 Mint 的流程
+
+#### 1️⃣ 创建账户（System Program）
+
+用 createAccount 新建一个大小为 MULTISIG_SIZE 的账户
+
+ owner 是 SPL Token Program 或 Token-2022 Program
+
+```
+createAccount(umi, {
+    newAccount: createSignerFromKeypair(umi, keypair),
+    lamports: await umi.rpc.getRent(MULTISIG_SIZE),
+    space: MULTISIG_SIZE,
+    programId: umiPublicKey(programId.toBase58()),
+  })
+
+```
+
+调 createInitializeMultisigInstruction(multisig, signers, m, programId) 初始化 SPL Token multisig
+
+```
+InitializeMultisig
+```
+
+输入：
+
+- m
+- signer pubkeys
+
+
+
+#### Step 2️⃣ 创建 Mint
+
+调用：
+
+```
+InitializeMint
+```
+
+参数：
+
+```
+mint_authority = multisig_pubkey
+```
+
+
+
+#### Step 3️⃣ 使用
+
+当你执行：
+
+```
+mint_to / transfer / burn
+```
+
+Token Program 内部会做👇
+
+传入：
+
+```
+authority = 某个 pubkey
+```
+
+------
+
+#### Step 1：判断 authority 是否签名
+
+如果这个 pubkey 自己签名了：
+
+```
+直接认为是普通账户 ✔
+```
+
+#### Step 2：如果没签名 → 尝试当 Multisig 解析
+
+```
+else {
+    // 尝试把 authority 当 multisig 账户解析
+}
+```
+
+#### Step 3：校验 Multisig
+
+Token Program 会：checkMultisigSigners
+
+#### ① 检查 owner
+
+```
+if authority_account.owner != token_program_id {
+    return Error::InvalidAccountOwner;
+}
+```
+
+👉 必须是 Token Program 创建的账户
+
+#### ② 反序列化数据
+
+尝试解析为：
+
+```
+Multisig {
+    m: u8,
+    n: u8,
+    signers: [Pubkey; 11],
+}
+```
+
+👉 如果解析失败：
+
+```
+说明不是 multisig ❌
+```
+
+#### ③ 校验 signer 数量
+
+```
+let mut signer_count = 0;
+
+for account in remaining_accounts {
+    if account.is_signer && account.key ∈ multisig.signers {
+        signer_count += 1;
+    }
+}
+
+if signer_count < multisig.m {
+    return Error::NotEnoughSigners;
+}
+```

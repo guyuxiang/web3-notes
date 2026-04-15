@@ -21,7 +21,7 @@ OApp标准作为一个门面层，将原始的LayerZero协议接口封装为开�
 开发者无需直接调用endpoint.send()和endpoint.lzReceive()，而是使用_lzSend()和_lzReceive()方法，这些方法处理了常见模式，如手续费估算、消息验证和错误处理。
 您的应用程序代码专注于业务逻辑（如自定义数据的编码/解码、状态转换等），而 OApp 包装层负责管理协议交互。
 
-不要提供了跨链费用报价、发生、接受的方法框架
+提供了跨链费用报价、发送、接受的方法框架
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -154,14 +154,14 @@ function lzReceive(
 }
 ```
 - 费用支付和验证
-  1. 确保调用者已提供准确要求的本地费用或零利率费用。
-  2. 执行时`endpoint.send(...)`，端点会验证费用是否与所选消息库中的报价相符。如果费用不足，则会撤销操作。
+  1. 确保调用者已提供准确要求的**本地费用**或零利率费用。
+  2. 执行时`endpoint.send(...)`，端点会**验证费用是否与所选消息库中的报价相符**。如果费用不足，则会撤销操作。
 
 - 数据包构造和发送
   1. Endpoint计算出针对`(sender, dstEid, receiver)`的 nonce，并构建一个`Packet`包含`nonce`, `srcEid`, `sender`, `dstEid`, `receiver`, `GUID`, 和原始数据的结构`message`。
   2. 它会查找要使用的发送库，可以是每个 OApp 的覆盖设置，也可以是默认值`(sender, dstEid)`。
   3. send 库将数据序列化为结构体`encodedPacketd`的一个`Packet`并返回该`MessagingFee`结构体。
-  4. 端点发出一个`PacketSent(...)`事件，以便 DVN 和执行器知道要处理哪个数据包。
+  4. 端点发出一个**`PacketSent(...)`事件**，以便 DVN 和执行器知道要处理哪个数据包。
 - 验证跨链消息
 
 - 调用`lzReceive(...)`
@@ -579,6 +579,7 @@ function _lzReceive(..., bytes calldata message, ...) internal override {
 
 
 - **小数处理**：确保不同十进制系统的链之间精度一致
+- 因为不同链、不同 token 实现的 decimals 可能不一样，但跨链消息需要一个统一精度，否则消息编码和对端还原会不一致
 
 ​	例如，EVM 链通常使用 18 位小数，而 Solana 通常使用 6 位或 9 位小数。OFT 通过两级十进制系统来处理这个问题：
 
@@ -598,13 +599,13 @@ function _lzReceive(..., bytes calldata message, ...) internal override {
 
    flooredAmountLD=⌊amountLD / 小数转换率⌋×小数转换率
 
-3. 计算并向发送方返回剩余的灰尘量：
+3. 计算并向发送方**返回剩余的灰尘量**：
 
    dust= amountLD −flooredAmountLD
 
    在从发件人账户**扣款**之前，这笔款项`dust`会退还到发件人的余额中
 
-4. 将本地小数`amountLD`中的金额转换为源链上的共享单位：
+4. 将本地小数`amountLD`中的金额**转换为源链上的共享单位**：
 
 ​	amountSD = amountLD / decimalConversionRate
 
@@ -618,12 +619,12 @@ function _lzReceive(..., bytes calldata message, ...) internal override {
 
 
 - **费用估算与支付：**
-  内置的费用报价机制可估算跨链转账的成本。无论您转账的是同质化代币还是 NFT，发送方都会获得准确的费用估算，其中包括源链 gas 费、协议费用和目标链执行费用。
+  **内置的费用报价机制**可估算跨链转账的成本。无论您转账的是同质化代币还是 NFT，发送方都会获得准确的费用估算，其中包括源链 gas 费、协议费用和目标链执行费用。
 
 
 
 - **可配置的执行选项：**
-  两种代币标准都允许开发者设置执行选项（例如 gas 限制或回退配置），并强制执行这些选项，以保证为目标链上的转账提供足够的资源。
+  两种代币标准都允许开发者设置执行选项（例如 **gas 限制或回退配置**），并强制执行这些选项，以保证为目标链上的转账提供足够的资源。
 
 
 
@@ -705,3 +706,390 @@ OFT 合约必须部署在当前存在或将来存在该代币的每个网络上�
 - 使用**OApp 级别对 OFT 部署进行配对**`setPeer(...)`，以便每个合约都知道其在目标链上的可信对应合约。
 
 https://docs.layerzero.network/v2/concepts/technical-reference/oapp-reference#security-and-channel-management
+
+
+
+
+
+# LayerZero V2 Solana
+
+在 Solana 上创建跨链代币的开发者将需要部署他们自己的 OFT 程序实例，并且该实例拥有他们自己的 OFT 存储账户。
+
+每个**OFT 存储帐户都由一个OFT 程序**管理
+
+**OFT Program** 和 **Solana Token Program** 进行交互进行mint/burn
+
+ OFT 存储账户是一个程序派生地址 (PDA) 账户，负责存储您的代币的特定 LayerZero 配置，并支持 Solana 代币的跨链转账。
+
+![image-20260415112956289](C:\Users\顾宇翔\AppData\Roaming\Typora\typora-user-images\image-20260415112956289.png)
+
+![image-20260415113050804](C:\Users\顾宇翔\AppData\Roaming\Typora\typora-user-images\image-20260415113050804.png)
+
+**Solana OFT 标准**使用6 个主要账户：
+
+| 帐户名称         | 可执行文件 | 描述                                                         |
+| :--------------- | :--------- | :----------------------------------------------------------- |
+| OFT程序          | `true`     | OFT 程序本身，即控制 OFT 如何与 LayerZero 端点和 SPL 令牌交互的可执行无状态代码。 |
+| mint账户         | `false`    | 这是OFT 的 SPL 代币的[铸币账户](https://solana.com/docs/core/tokens#mint-account)。它存储特定代币的关键元数据，例如总供应量、小数精度、铸币权限、冻结权限和更新权限。 |
+| mint权限多重签名 | `false`    | 1/N[多重签名](https://spl.solana.com/token#example-mint-with-multisig-authority)作为 SPL 代币的铸造授权。OFT 存储始终是签名者之一。也可以添加其他签名者。 |
+| 第三方托管账户   | `false`    | **OFT 商店**拥有的对应**Mint 账户的**代币账户。用于**OFT 适配器**部署，以及在启用费用时存储费用。对于 OFT 和 OFT 适配器，托管地址是 OFT 商店 PDA 派生的一部分。托管账户是普通的代币账户，而非关联代币账户。 |
+| OFT存储账户      | `false`    | 一个[PDA](https://solana.com/docs/core/pda)账户，用于存储每个OFT的相关数据，例如底层SPL代币铸造、SPL代币计划、终端计划、OFT的费用结构和扩展功能。该账户是托管账户的所有者。OFT商店是铸造机构多重签名的签署方。 |
+| PeerConfig       | `false`    | PDA账户用于存储每个远程链[的](https://solana.com/docs/core/pda)配置信息，包括对等地址、强制选项、速率限制器和费用设置。该账户源自OFT商店和远程[EID](https://docs.layerzero.network/v2/concepts/glossary#endpoint-id)。 |
+
+
+
+### 设置进入 EVM 链的选项
+
+典型的 OFT`lzReceive`调用和铸造操作在大多数 EVM 链上都会消耗`60000`gas，因此您可以强制执行此选项，要求调用者在源链交易中支付`60000`gas 限额，以防止目标链出现 gas 不足的问题。
+
+```
+import {addressToBytes32, Options} from '@layerzerolabs/lz-v2-utilities';
+// ...
+// add the following 3 lines anywhere before the `oft.quote()` call
+const GAS_LIMIT = 60_000 // Gas limit for the executor
+const MSG_VALUE = 0 // msg.value for the lzReceive() function on destination in wei
+const _options = Options.newOptions().addExecutorLzReceiveOption(GAS_LIMIT, MSG_VALUE)
+// ...
+// replace the options value in oft.quote()
+const { nativeFee } = await oft.quote(
+    umi.rpc,
+    {
+        payer: umiWalletSigner.publicKey,
+        tokenMint: mint,
+        tokenEscrow: umiEscrowPublicKey,
+    },
+    {
+        payInLzToken: false,
+        to: Buffer.from(recipientAddressBytes32),
+        dstEid: toEid,
+        amountLd: BigInt(amount),
+        minAmountLd: 1n,
+        options: _options.toBytes(), // <--- here
+        composeMsg: undefined,
+    },
+// ...
+// replace the options value in oft.send()
+    const ix = await oft.send(
+        umi.rpc,
+        {
+            payer: umiWalletSigner,
+            tokenMint: mint,
+            tokenEscrow: umiEscrowPublicKey,
+            tokenSource: tokenAccount[0],
+        },
+        {
+            to: Buffer.from(recipientAddressBytes32),
+            dstEid: toEid,
+            amountLd: BigInt(amount),
+            minAmountLd: (BigInt(amount) * BigInt(9)) / BigInt(10),
+            options: _options.toBytes(), // <--- here
+            composeMsg: undefined,
+            nativeFee,
+        },
+// ...
+```
+
+LayerZero 的 **Message Execution Options（`_options`）** 本质上是一个**跨链消息执行层的“参数指令集”**，用于告诉 **DVNs（验证网络）和 Executor（执行器）**：
+
+> `_options` 是一个 **bytes 编码的执行策略配置**，用于控制跨链消息在目标链上的执行行为。
+
+它会被 LayerZero 的执行组件读取：
+
+- DVN（Decentralized Verifier Network）
+  - 负责验证消息
+- Executor
+  - 负责在目标链调用你的合约（`lzReceive`）
+
+### _options 的本质结构
+
+虽然是 `bytes`，但本质是一个 **TLV（Type-Length-Value）结构编码**
+
+可以理解为：
+
+```
+_options = [
+  option_type | length | value,
+  option_type | length | value,
+  ...
+]
+```
+
+常见 Option 类型（重点）：
+
+### 常见 Message Execution Options
+
+#### 1️⃣ LZ_RECEIVE（目标链执行 gas）
+
+👉 最重要的一个
+
+表示：
+
+> 给目标链 `lzReceive()` 提供多少 gas
+
+示意：
+
+```
+addExecutorLzReceiveOption(uint256 gas, uint256 value)
+```
+
+- `gas`：执行 gas
+- `value`：附带 native token（例如 ETH）
+
+📌 作用：
+
+- 防止执行失败（gas 不够）
+- 控制费用
+
+------
+
+#### 2️⃣ LZ_COMPOSE（组合调用）
+
+用于 **跨链后继续调用其他合约（组合调用）**
+
+```
+addExecutorLzComposeOption(uint16 index, uint256 gas, uint256 value)
+```
+
+📌 场景：
+
+- 跨链 → DEX swap → staking
+- 跨链 → NFT mint → metadata update
+
+👉 类似“跨链后的多步执行 pipeline”
+
+------
+
+#### 3️⃣ NATIVE_DROP（空投 gas）
+
+```
+addExecutorNativeDropOption(address receiver, uint256 amount)
+```
+
+📌 作用：
+
+> 在目标链给某地址转一点 native token（比如 ETH）
+
+用途：
+
+- 给用户 gas（常见 UX 优化）
+- onboarding 新用户
+
+------
+
+#### 4️⃣ ORDERED_EXECUTION（顺序执行）
+
+保证消息按顺序执行（避免乱序）
+
+📌 默认 LayerZero 是**无序执行（并发）**
+
+
+
+
+
+enforcedOptions 和 extraOptions 
+
+  - 目标链执行时要预留多少 gas：sendGas
+  - 执行时附带多少原生币 value：sendValue
+
+
+
+
+
+## Solana OFT程序执行
+
+#### oft_store的创建原理
+
+  - 参与派生的 program id 是 oftProgramId
+  - 参与派生的 seed 是 OFT 固定前缀 + 这枚 token 的 mint 地址 “seeds = [OFT_SEED, token_mint.key().as_ref()],”
+  - 返回值是 [pda, bump]
+
+所以 oft_store 其实扮演的是这枚 mint 的 OFT 主账户，里面存：
+
+  - 这枚币是谁：token_mint
+  - 精度换算怎么做：ld2sd_rate
+  - 管理员是谁：admin
+  - 是否暂停：paused
+  - endpoint 程序是谁：endpoint_program
+  - 它自己的 bump：bump
+
+
+
+#### 执行
+
+multisig 账户作为 authority，同时用 invoke_signed 让 oft_store PDA 作为 multisig signer 参与 mint_to
+
+```
+ mint_to 调用：
+
+  let ix = spl_token_2022::instruction::mint_to(
+      ctx.accounts.token_program.key,
+      &ctx.accounts.token_mint.key(),
+      &ctx.accounts.token_dest.key(),
+      mint_authority.key,
+      &[&ctx.accounts.oft_store.key()],
+      amount_received_ld,
+  )?;
+
+```
+
+  - 第 4 个参数 mint_authority.key：谁是 authority
+    这里传的是 multisig 账户地址
+  - 第 5 个参数 &[&ctx.accounts.oft_store.key()]：谁是这次参与签名的 multisig signer
+    这里传的是 oft_store PDA
+
+PDA 没私钥，不能像钱包那样签，所以程序必须通过 invoke_signed 告诉运行时：
+
+  “这个 PDA 是我的，我知道它的 seeds，请把它当成已签名账户。”
+
+```
+  let seeds: &[&[u8]] = &[OFT_SEED, oft_store_seed.as_ref(), &[ctx.accounts.oft_store.bump]];
+
+  solana_program::program::invoke_signed(
+      &ix,
+      &[
+          ctx.accounts.token_mint.to_account_info(),
+          ctx.accounts.token_dest.to_account_info(),
+          mint_authority.to_account_info(),
+          ctx.accounts.oft_store.to_account_info(),
+      ],
+      &[&seeds],
+  )?;
+
+```
+
+运行时把 oft_store 视为本次 CPI 的 signer
+
+
+
+
+
+#### peer
+
+如果 Solana OFT 要连 Sepolia、Base、Arbitrum，那么链上会有多份 PeerConfig，每一份都对应一个目标 eid
+
+```
+pub struct PeerConfig {
+      pub peer_address: [u8; 32],
+      pub enforced_options: EnforcedOptions,
+      pub outbound_rate_limiter: Option<RateLimiter>,
+      pub inbound_rate_limiter: Option<RateLimiter>,
+      pub fee_bps: Option<u16>,
+      pub bump: u8,
+  }
+```
+
+peer 是一个 PDA，派生方式在多个指令里都写得很明确：
+
+```
+  peer PDA = PDA(
+    program_id = OFT program,
+    seeds = ["Peer", oft_store, remote_eid]
+  )
+```
+
+ 例如：
+
+  - Peer(oft_store, SepoliaEid) 是一份配置
+  - Peer(oft_store, BaseEid) 是另一份配置
+
+  所以你可以说：
+
+  - 逻辑上，PeerConfig 属于某个远端 EID
+  - 实现上，这个 EID 主要体现在 PDA 派生上，而不是 struct 字段里
+
+远端 peer 地址 是什么
+
+  peer_address 是这条路径在远端链上的 OApp / OFT 地址，类型是固定 32 字节：
+
+  pub peer_address: [u8; 32],
+
+  见 programs/oft/src/state/peer_config.rs:9
+
+  对 EVM 链来说，实际地址是 20 字节，所以项目会先做 bytes32 padding，再写进去。
+
+
+
+####  接收方向
+
+远端链发消息到 Solana 时，lz_receive 会校验消息里的 sender 必须等于该路径登记的 peer_address：
+
+它保证只有“被你事先登记过的远端 peer”发来的消息才会被接受。
+所以 peer_address 其实就是这条跨链路径的对端身份白名单。
+
+
+
+#### enforced options 是什么
+
+  enforced_options 是管理员为这条路径预设的 LayerZero options：
+
+  - send：普通 send 的强制 options
+  - send_and_call：带 compose message 的 send-and-call 强制 options
+
+ 默认内容是通过 LayerZero 的 Options 生成的，当前主要是：
+
+  - 目标链 lzReceive 的 gas
+  - 目标链执行时附带的 value
+
+
+
+ **它在发送和报价时都会参与**
+
+  所以 enforced_options 的作用是：
+
+  - 给这条链路设置默认 / 最低要求
+  - 保证即便调用方没带 extra options，路径本身也知道目标链该如何执行
+  - 直接影响 quote 出来的 nativeFee
+
+
+
+## 跨链费用计算
+
+solana->eth
+
+    1. 先报价 nativeFee
+    2. 再把报价结果作为参数传给 send
+    3. OFT 程序把它透传给 LayerZero Endpoint CPI
+
+
+
+在 sendNative() 里，这个nativeFee值会被序列化进 OFT 程序的 send 指令数据
+
+```
+  data: getSendInstructionDataSerializer().serialize({
+      dstEid,
+      to,
+      amountLd,
+      minAmountLd,
+      options: options ?? new Uint8Array(),
+      composeMsg: composeMsg ?? null,
+      nativeFee,
+      lzTokenFee: lzTokenFee ?? 0n,
+  })
+```
+
+ OFT 程序没有自己写任何 system_instruction::transfer(...)OFT 本身不做 lamports 扣款逻辑，而是把支付责任交给 Endpoint CPI
+
+
+  -  payer.publicKey 被显式传给了 Endpoint 的 account-meta 构造逻辑
+  - Endpoint 在 CPI 里会把它当作费用支付方
+  - 然后按 native_fee 指定的金额处理 lamports
+
+
+
+  用户发起一笔 Solana 交易
+    -> 调用 OFT send
+      -> OFT burn token
+      -> OFT CPI 到 Endpoint
+        -> Endpoint 根据 native_fee 完成收费和消息发送
+
+
+
+#### 如果 nativeFee 不够会怎么样
+
+  虽然 Endpoint 内部代码不在这个仓库里，但按这套模式，结果通常就是：
+
+  - quote 得到一个建议费用
+  - send 时把这个数传进去
+  - 如果你传少了，Endpoint CPI 会失败
+  - 整笔 Solana 交易回滚
+  - token burn 也不会最终生效
